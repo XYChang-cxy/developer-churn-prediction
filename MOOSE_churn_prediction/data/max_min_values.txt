@@ -1,0 +1,11 @@
+commits	444	0
+issues	352	0
+issue_comments	640	0
+pulls	24	0
+merged_pulls	20	0
+reviews	0	0
+review_comments	5564	0
+dcn_betweeness_normalized	0.7958939126951827	0
+dcn_betweeness	32436.656411892167	0
+dcn_weighted_degree	32367	0
+dcn_degree	235	0
