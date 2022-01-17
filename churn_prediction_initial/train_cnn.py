@@ -10,7 +10,7 @@ from tensorflow.keras.utils import *
 from tensorflow.python.keras import datasets, layers, models
 from tensorflow.python.keras.layers import Conv2D,MaxPooling2D,Dense,Flatten,Dropout
 from tensorflow.python.keras.callbacks import EarlyStopping
-from MOOSE_churn_prediction.new_metrics import *
+from churn_prediction_initial.new_metrics import *
 import random
 
 
