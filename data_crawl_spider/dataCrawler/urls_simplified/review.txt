@@ -1,0 +1,2 @@
+https://api.github.com/repositories/7276954/pulls/10719/reviews
+https://api.github.com/repositories/7276954/pulls/10705/reviews
