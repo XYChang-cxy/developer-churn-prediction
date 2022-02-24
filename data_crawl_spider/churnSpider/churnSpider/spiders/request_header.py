@@ -11,9 +11,9 @@ GitHub_accept = 'application/vnd.github.v3+json'
 Gitee_accept = 'application/json'
 Connection = 'close'
 GitHub_token_list =[
-    "token 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",   #zy
-    "token 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",   #cxy
-    "token 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"   #ll
+    "token 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",
+    "token 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",
+    "token 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"
 ]
 GitHub_token_number = 3
 Gitee_auth="token bb26a62f4d4f635b8ef23c399e33c0c3"

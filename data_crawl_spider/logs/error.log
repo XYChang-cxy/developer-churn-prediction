@@ -1,2 +1,0 @@
-2022-02-21 03:54:38,965 - ERROR - parse_commit[:924] - data order error! -- https://api.github.com/repositories/7276954/commits?sort=created&direction=desc&per_page=100&page=45
-2022-02-21 03:55:22,009 - ERROR - parse_commit[:924] - data order error! -- https://api.github.com/repositories/97556265/commits?sort=created&direction=desc&per_page=100&page=56

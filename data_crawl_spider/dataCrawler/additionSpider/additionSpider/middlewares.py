@@ -50,7 +50,7 @@ class MyUserAgentMiddleware(UserAgentMiddleware):
 
     def process_request(self, request, spider):
         agent = random.choice(headers)
-        if spider.name == 'GitHub':
+        if spider.name == 'GitHub_addition':
             agent['Authorization'] = GitHub_auth
             agent['Accept'] = GitHub_accept
         else:   #Gitee情况，暂未考虑
@@ -59,7 +59,7 @@ class MyUserAgentMiddleware(UserAgentMiddleware):
         request.headers.update(agent)
 
 
-class ChurnspiderSpiderMiddleware:
+class AdditionspiderSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the spider middleware does not modify the
     # passed objects.
@@ -106,7 +106,7 @@ class ChurnspiderSpiderMiddleware:
         spider.logger.info('Spider opened: %s' % spider.name)
 
 
-class ChurnspiderDownloaderMiddleware:
+class AdditionspiderDownloaderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the downloader middleware does not modify the
     # passed objects.
