@@ -15,13 +15,13 @@ user_agent = 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML
 GitHub_accept = 'application/vnd.github.v3.star+json'###这里统一用vnd.github.v3.star，其实对star以外的相当于是vnd.github.v3+json
 Gitee_accept = 'application/json'
 # Connection = 'close'
-GitHub_auth ="token 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"
-# GitHub_token_list =[
-#     "token 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",
-#     "token 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",
-#     "token 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"
-# ]
-Gitee_auth="token bb26a62f4d4f635b8ef23c399e33c0c3"
+GitHub_token_list =[
+    "token xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "token xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "token xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+]
+GitHub_token_number = 3
+Gitee_auth="token xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 headers = [
             urllib3.util.make_headers(user_agent = user_agent, basic_auth = 'cit-bot1:sjtucit1'),
             urllib3.util.make_headers(user_agent = user_agent, basic_auth = 'cit-bot2:sjtucit2'),
@@ -31,6 +31,16 @@ headers = [
             urllib3.util.make_headers(user_agent = user_agent, basic_auth = 'cit-bot6:sjtucit6'),
             urllib3.util.make_headers(user_agent = user_agent, basic_auth = 'cit-bot7:sjtucit7'),
             urllib3.util.make_headers(user_agent = user_agent, basic_auth = 'jiangsha1007:js19851007851007')]
+
+# token rate limit不足问题解决方法：
+# 方法一：（RETRY_TIMES = 0)
+#   在spider中每次发起scrapy.Request时定义headers（含Authorization)
+#   token次数用完时在spider中切换token_index
+#   在MyUserAgentMiddleware中使用request.headers['Authorization']
+# 方法二：（RETRY_TIMES = 8）
+#   在MyUserAgentMiddleware中直接随机获取token
+#   该方法要求GitHub_token_list中有3个及以上的token
+#   设置RETRY_TIMES = 8，则一定能在重试次数中用到有效token
 
 
 class MyUserAgentMiddleware(UserAgentMiddleware):
@@ -51,7 +61,11 @@ class MyUserAgentMiddleware(UserAgentMiddleware):
     def process_request(self, request, spider):
         agent = random.choice(headers)
         if spider.name == 'GitHub_addition':
-            agent['Authorization'] = GitHub_auth
+            if len(GitHub_token_list) < 3 and 'Authorization' in request.headers:
+                agent['Authorization'] = request.headers['Authorization']
+            else:
+                agent['Authorization'] = random.choice(GitHub_token_list)
+                # print(agent['Authorization'])
             agent['Accept'] = GitHub_accept
         else:   #Gitee情况，暂未考虑
             agent['Authorization'] = Gitee_auth

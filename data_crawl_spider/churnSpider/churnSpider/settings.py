@@ -12,7 +12,7 @@ BOT_NAME = 'churnSpider'
 SPIDER_MODULES = ['churnSpider.spiders']
 NEWSPIDER_MODULE = 'churnSpider.spiders'
 
-JOBDIR= 'job_info/001'
+# JOBDIR= 'job_info/001'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'churnSpider (+http://www.yourdomain.com)'
@@ -74,7 +74,7 @@ ITEM_PIPELINES = {
    'churnSpider.pipelines.ChurnspiderPipeline': 300,
 }
 RETRY_ENABLED = True  #打开重试开关
-RETRY_TIMES = 8  # initial response + 2 retries = 3 requests
+RETRY_TIMES = 8     # initial response + 2 retries = 3 requests
 RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408,403,304,202,443,404,429]
 HTTPERROR_ALLOWED_CODES = [401,403,404,429]#上面报的是403，就把403加入。
 # Enable and configure the AutoThrottle extension (disabled by default)

@@ -94,7 +94,7 @@ class GithubAdditionSpider(scrapy.Spider):
 
     def parse(self, response):
         if response.status == 401:
-            print(get_html_json(self.start_urls[0],getGitHubHeader(self.token_index),verify=False)[0])
+            print(get_html_json(self.start_urls[0],getGitHubHeader(-1),verify=False)[0])
             print(json.loads(response.body.decode('utf-8')))
             yield scrapy.Request(self.start_urls[0],callback=self.parse, dont_filter=True,
                                      headers=getGitHubHeader(self.token_index))
@@ -488,13 +488,14 @@ class GithubAdditionSpider(scrapy.Spider):
                             s = requests.session()
                             s.keep_alive = False    #防止http connection太多
                             pull_detail_url = current_url.split('?')[0] + "/" + str(pull_number)
-                            pull_detail_html_info = get_html_json(pull_detail_url,getGitHubHeader(self.token_index),verify=False)
+                            pull_detail_html_info = get_html_json(pull_detail_url,getGitHubHeader(-1),verify=False)
                             if pull_detail_html_info[2] in self.token_overtime_status_list:
-                                self.token_index = (self.token_index + 1) % GitHub_token_number
-                                self.logger.info('github token changed: token_index = ' + str(self.token_index) +
-                                                 ' -- '+ pull_detail_url)
+                                # self.token_index = (self.token_index + 1) % GitHub_token_number
+                                # self.logger.info('github token changed: token_index = ' + str(self.token_index) +
+                                #                  ' -- '+ pull_detail_url)
+                                self.logger.info('get_html_json token changed -- ' + pull_detail_url)
                                 pull_detail_html_info = get_html_json(pull_detail_url,
-                                                                      getGitHubHeader(self.token_index), verify=False)
+                                                                      getGitHubHeader(-1), verify=False)
                                 if pull_detail_html_info[2] in self.token_overtime_status_list:
                                     self.logger.critical(
                                         'something wrong with GitHub tokens happened! token_index = ' + str(self.token_index)
@@ -513,12 +514,13 @@ class GithubAdditionSpider(scrapy.Spider):
                             s = requests.session()
                             s.keep_alive = False
                             pull_review_url = current_url.split('?')[0] + "/" + str(pull_number) + "/reviews"
-                            pull_review_html_info = get_html_json(pull_review_url,getGitHubHeader(self.token_index),verify=False)
+                            pull_review_html_info = get_html_json(pull_review_url,getGitHubHeader(-1),verify=False)
                             if pull_review_html_info[2] in self.token_overtime_status_list:
-                                self.token_index = (self.token_index + 1) % GitHub_token_number
-                                self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- '
-                                                 + pull_review_url)
-                                pull_review_html_info = get_html_json(pull_review_url,getGitHubHeader(self.token_index),verify=False)
+                                # self.token_index = (self.token_index + 1) % GitHub_token_number
+                                # self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- '
+                                #                  + pull_review_url)
+                                self.logger.info('get_html_json token changed -- ' + pull_review_url)
+                                pull_review_html_info = get_html_json(pull_review_url,getGitHubHeader(-1),verify=False)
                                 if pull_review_html_info[2] in self.token_overtime_status_list:
                                     self.logger.critical(
                                         'something wrong with GitHub tokens happened! token_index = ' + str(self.token_index) +
@@ -567,13 +569,14 @@ class GithubAdditionSpider(scrapy.Spider):
                                 s = requests.session()
                                 s.keep_alive = False
                                 pull_review_comment_url = current_url.split('?')[0] + "/" + str(pull_number) + "/comments"
-                                pull_review_comment_html_info = get_html_json(pull_review_comment_url,getGitHubHeader(self.token_index),verify=False)
+                                pull_review_comment_html_info = get_html_json(pull_review_comment_url,getGitHubHeader(-1),verify=False)
                                 if pull_review_comment_html_info[2] in self.token_overtime_status_list:
-                                    self.token_index = (self.token_index + 1) % GitHub_token_number
-                                    self.logger.info('github token changed: token_index = ' + str(self.token_index)
-                                                     + ' -- ' + pull_review_comment_url)
+                                    # self.token_index = (self.token_index + 1) % GitHub_token_number
+                                    # self.logger.info('github token changed: token_index = ' + str(self.token_index)
+                                    #                  + ' -- ' + pull_review_comment_url)
+                                    self.logger.info('get_html_json token changed -- ' + pull_review_comment_url)
                                     pull_review_comment_html_info = get_html_json(pull_review_url,
-                                                                          getGitHubHeader(self.token_index),
+                                                                          getGitHubHeader(-1),
                                                                           verify=False)
                                     if pull_review_comment_html_info[2] in self.token_overtime_status_list:
                                         self.logger.critical(
@@ -750,12 +753,13 @@ class GithubAdditionSpider(scrapy.Spider):
                 s = requests.session()
                 s.keep_alive = False
                 pull_review_url = current_url.split('?')[0] + "/reviews"
-                pull_review_html_info = get_html_json(pull_review_url, getGitHubHeader(self.token_index), verify=False)
+                pull_review_html_info = get_html_json(pull_review_url, getGitHubHeader(-1), verify=False)
                 if pull_review_html_info[2] in self.token_overtime_status_list:
-                    self.token_index = (self.token_index + 1) % GitHub_token_number
-                    self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- '
-                                     + pull_review_url)
-                    pull_review_html_info = get_html_json(pull_review_url, getGitHubHeader(self.token_index),
+                    # self.token_index = (self.token_index + 1) % GitHub_token_number
+                    # self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- '
+                    #                  + pull_review_url)
+                    self.logger.info('get_html_json token changed -- ' + pull_review_url)
+                    pull_review_html_info = get_html_json(pull_review_url, getGitHubHeader(-1),
                                                           verify=False)
                     if pull_review_html_info[2] in self.token_overtime_status_list:
                         self.logger.critical(
@@ -808,13 +812,14 @@ class GithubAdditionSpider(scrapy.Spider):
                     s.keep_alive = False
                     pull_review_comment_url = current_url.split('?')[0] + "/comments"
                     pull_review_comment_html_info = get_html_json(pull_review_comment_url,
-                                                                  getGitHubHeader(self.token_index), verify=False)
+                                                                  getGitHubHeader(-1), verify=False)
                     if pull_review_comment_html_info[2] in self.token_overtime_status_list:
-                        self.token_index = (self.token_index + 1) % GitHub_token_number
-                        self.logger.info('github token changed: token_index = ' + str(self.token_index)
-                                         + ' -- ' + pull_review_comment_url)
+                        # self.token_index = (self.token_index + 1) % GitHub_token_number
+                        # self.logger.info('github token changed: token_index = ' + str(self.token_index)
+                        #                  + ' -- ' + pull_review_comment_url)
+                        self.logger.info('get_html_json token changed -- ' + pull_review_comment_url)
                         pull_review_comment_html_info = get_html_json(pull_review_url,
-                                                                      getGitHubHeader(self.token_index),
+                                                                      getGitHubHeader(-1),
                                                                       verify=False)
                         if pull_review_comment_html_info[2] in self.token_overtime_status_list:
                             self.logger.critical(
@@ -936,12 +941,13 @@ class GithubAdditionSpider(scrapy.Spider):
                 self.logger.error('page start/end time error! -- '+current_url)
                 page_start_time = datetime.datetime.now()
                 page_end_time = datetime.datetime.now()
-            if page_end_time < page_start_time: # 页面数据排序错误
-                self.logger.error('data order error! -- '+current_url)
-            elif page_end_time < self.start_time: # 已经爬完所需时间段的数据
+            # commit可能有顺序错误的页，属于正常现象
+            if (page_start_time - page_end_time).days >= 30:  # 页面数据排序错误,充分不必要条件
+                self.logger.error('data order error! -- ' + current_url)
+            elif (self.start_time - page_end_time).days > 30:  # 已经爬完所需时间段的数据
                 self.logger.info('page time before period: ' + str(page_end_time) + ' < ' + str(self.start_time))
             else:
-                if page_start_time > self.end_time: # 还没遍历到所需的时间段
+                if (page_start_time - self.end_time).days > 30:  # 还没遍历到所需的时间段
                     self.logger.info('page time after period: '+str(page_start_time) + ' > ' + str(self.end_time))
                 else:
                     for repos_per_data in repos_data:
@@ -950,8 +956,8 @@ class GithubAdditionSpider(scrapy.Spider):
                             commit_time = datetime.datetime.strptime(repos_per_data['commit']['author']['date'], self.fmt_GitHub)
                             if commit_time > self.end_time: #还没到所需时间段的数据
                                 continue
-                            if commit_time < self.start_time: # 爬完所需时间段的数据
-                                break
+                            if commit_time < self.start_time: # 不是break!
+                                continue    #############################
                             commit_time = commit_time.strftime(self.fmt_MySQL)
                             # API中可能缺少对应信息###
                             if repos_per_data['author'] is None:

@@ -11,12 +11,12 @@ GitHub_accept = 'application/vnd.github.v3+json'
 Gitee_accept = 'application/json'
 Connection = 'close'
 GitHub_token_list =[
-    "token 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",
-    "token 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",
-    "token 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"
+    "token xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "token xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "token xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ]
 GitHub_token_number = 3
-Gitee_auth="token bb26a62f4d4f635b8ef23c399e33c0c3"
+Gitee_auth="token xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 headers = [
             urllib3.util.make_headers(user_agent = user_agent, basic_auth = 'cit-bot1:sjtucit1'),
             urllib3.util.make_headers(user_agent = user_agent, basic_auth = 'cit-bot2:sjtucit2'),
@@ -34,7 +34,10 @@ headers = [
 def getGitHubHeader(token_index):
     header = headers[random.randint(0, len(headers)-1)]
     header['Connection'] = Connection
-    header['Authorization'] = GitHub_token_list[token_index]
+    if token_index == -1:  # 随机获取token
+        header['Authorization'] = random.choice(GitHub_token_list)
+    else:
+        header['Authorization'] = GitHub_token_list[token_index]
     header['Accept'] = GitHub_accept
     return header
 
@@ -43,7 +46,10 @@ def getGitHubStarHeader(token_index):#用于github中moose_star数据的爬取
     header = headers[random.randint(0, len(headers)-1)]
     header['Connection'] = Connection
     header['Accept'] = 'application/vnd.github.v3.star+json'#使用vnd.github.v3.star可以获取到starred_at信息
-    header['Authorization'] = GitHub_token_list[token_index]
+    if token_index == -1:  # 随机获取token
+        header['Authorization'] = random.choice(GitHub_token_list)
+    else:
+        header['Authorization'] = GitHub_token_list[token_index]
     return header
 
 
