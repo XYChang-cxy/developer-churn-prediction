@@ -75,9 +75,9 @@ ITEM_PIPELINES = {
    'additionSpider.pipelines.AdditionspiderPipeline': 300,
 }
 RETRY_ENABLED = True  #打开重试开关
-RETRY_TIMES = 8  # initial response + 2 retries = 3 requests
+RETRY_TIMES = 18  # initial response + 2 retries = 3 requests
 RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524, 408,403,304,202,443,404,429]
-HTTPERROR_ALLOWED_CODES = [401, 403, 404, 429]#上面报的是403，就把403加入。
+HTTPERROR_ALLOWED_CODES = [401, 403, 404, 429, 502]#上面报的是403，就把403加入。
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
 #AUTOTHROTTLE_ENABLED = True

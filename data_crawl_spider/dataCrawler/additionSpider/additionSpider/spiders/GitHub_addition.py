@@ -31,7 +31,7 @@ class GithubAdditionSpider(scrapy.Spider):
     allowed_domains = ['api.github.com']
 
     skip_http_status_list = [401, 404, 500]  # 如果某个仓库主信息api获取失败，则跳过这一仓库
-    page_loss_status_list = [404]  # 缺页情况，需要手动查找下一页
+    page_loss_status_list = [404, 502]  # 缺页情况，需要手动查找下一页
     token_overtime_status_list = [403]  # token每小时访问次数5000已用完,API rate limit exceeded for user ID xxxxxxxx
     token_index = 0
 
@@ -151,7 +151,7 @@ class GithubAdditionSpider(scrapy.Spider):
         current_url = response.meta['current_url']
         self.logger.debug(current_url)
         if response.status in self.page_loss_status_list: # page loss in this API
-            self.logger.warning('404: page lost! -- '+ current_url)
+            self.logger.warning('404/502: page lost! -- '+ current_url)
         elif response.status in self.token_overtime_status_list: # github token is overtime and can be used after an hour
             self.token_index = (self.token_index + 1) % GitHub_token_number
             self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- ' +current_url)
@@ -286,7 +286,7 @@ class GithubAdditionSpider(scrapy.Spider):
         current_url = response.meta['current_url']
         self.logger.debug(current_url)
         if response.status in self.page_loss_status_list:
-            self.logger.warning('404: page lost! -- ' + current_url)
+            self.logger.warning('404/502: page lost! -- ' + current_url)
         elif response.status in self.token_overtime_status_list:
             self.token_index = (self.token_index + 1) % GitHub_token_number
             self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- ' +current_url)
@@ -300,6 +300,9 @@ class GithubAdditionSpider(scrapy.Spider):
             try:
                 page_start_time = datetime.datetime.strptime(repos_data[-1]['created_at'], self.fmt_GitHub)
                 page_end_time = datetime.datetime.strptime(repos_data[0]['created_at'], self.fmt_GitHub)
+                ## direction = asc
+                # page_end_time = datetime.datetime.strptime(repos_data[-1]['created_at'], self.fmt_GitHub)
+                # page_start_time = datetime.datetime.strptime(repos_data[0]['created_at'], self.fmt_GitHub)
             except BaseException as e:
                 self.logger.error('page start/end time error! -- ' + current_url)
                 page_start_time = datetime.datetime.now()
@@ -395,7 +398,7 @@ class GithubAdditionSpider(scrapy.Spider):
         current_url = response.meta['current_url']
         self.logger.debug(current_url)
         if response.status in self.page_loss_status_list:
-            self.logger.warning('404: page lost! -- ' + current_url)
+            self.logger.warning('404/502: page lost! -- ' + current_url)
         elif response.status in self.token_overtime_status_list:
             self.token_index = (self.token_index + 1) % GitHub_token_number
             self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- ' +current_url)
@@ -505,8 +508,8 @@ class GithubAdditionSpider(scrapy.Spider):
                                 pull_comment_count = pull_detail_info['comments']
                                 pull_review_comment_count = pull_detail_info['review_comments']
                             except BaseException as e:
-                                self.logger.error('repo pull detail data crawl error! -- ' + pull_detail_url)
-                                self.logger.error(e)
+                                self.logger.critical('repo pull detail data crawl error! -- ' + pull_detail_url)
+                                self.logger.critical(e)
                                 pull_comment_count = 0 ###
                                 pull_review_comment_count = 0 ###
 
@@ -679,7 +682,7 @@ class GithubAdditionSpider(scrapy.Spider):
         current_url = response.meta['current_url']
         self.logger.debug(current_url)
         if response.status in self.page_loss_status_list:
-            self.logger.warning('404: page lost! -- ' + current_url)
+            self.logger.warning('404/502: page lost! -- ' + current_url)
         elif response.status in self.token_overtime_status_list:
             self.token_index = (self.token_index + 1) % GitHub_token_number
             self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- ' + current_url)
@@ -923,7 +926,7 @@ class GithubAdditionSpider(scrapy.Spider):
         current_url = response.meta['current_url']
         self.logger.debug(current_url)
         if response.status in self.page_loss_status_list:
-            self.logger.warning('404: page lost! -- ' + current_url)
+            self.logger.warning('404/502: page lost! -- ' + current_url)
         elif response.status in self.token_overtime_status_list:
             self.token_index = (self.token_index + 1) % GitHub_token_number
             self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- ' +current_url)
@@ -942,12 +945,12 @@ class GithubAdditionSpider(scrapy.Spider):
                 page_start_time = datetime.datetime.now()
                 page_end_time = datetime.datetime.now()
             # commit可能有顺序错误的页，属于正常现象
-            if (page_start_time - page_end_time).days >= 30:  # 页面数据排序错误,充分不必要条件
+            if (page_start_time - page_end_time).days >= 36500:  # 页面数据排序错误,充分不必要条件
                 self.logger.error('data order error! -- ' + current_url)
-            elif (self.start_time - page_end_time).days > 30:  # 已经爬完所需时间段的数据
+            elif (self.start_time - page_end_time).days > 36500:  # 已经爬完所需时间段的数据
                 self.logger.info('page time before period: ' + str(page_end_time) + ' < ' + str(self.start_time))
             else:
-                if (page_start_time - self.end_time).days > 30:  # 还没遍历到所需的时间段
+                if (page_start_time - self.end_time).days > 36500:  # 还没遍历到所需的时间段
                     self.logger.info('page time after period: '+str(page_start_time) + ' > ' + str(self.end_time))
                 else:
                     for repos_per_data in repos_data:
@@ -1005,7 +1008,7 @@ class GithubAdditionSpider(scrapy.Spider):
         current_url = response.meta['current_url']
         self.logger.debug(current_url)
         if response.status in self.page_loss_status_list:
-            self.logger.warning('404: page lost! -- ' + current_url)
+            self.logger.warning('404/502: page lost! -- ' + current_url)
         elif response.status in self.token_overtime_status_list:
             self.token_index = (self.token_index + 1) % GitHub_token_number
             self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- ' +current_url)
@@ -1102,7 +1105,7 @@ class GithubAdditionSpider(scrapy.Spider):
         current_url = response.meta['current_url']
         self.logger.debug(current_url)
         if response.status in self.page_loss_status_list:
-            self.logger.warning('404: page lost! -- ' + current_url)
+            self.logger.warning('404/502: page lost! -- ' + current_url)
         elif response.status in self.token_overtime_status_list:
             self.token_index = (self.token_index + 1) % GitHub_token_number
             self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- ' +current_url)
@@ -1178,7 +1181,7 @@ class GithubAdditionSpider(scrapy.Spider):
         current_url = response.meta['current_url']
         self.logger.debug(current_url)
         if response.status in self.page_loss_status_list:
-            self.logger.warning('404: page  lost! -- ' + current_url)
+            self.logger.warning('404/502: page lost! -- ' + current_url)
         elif response.status in self.token_overtime_status_list:
             self.token_index = (self.token_index + 1) % GitHub_token_number
             self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- ' +current_url)
@@ -1248,7 +1251,7 @@ class GithubAdditionSpider(scrapy.Spider):
         current_url = response.meta['current_url']
         self.logger.debug(current_url)
         if response.status in self.page_loss_status_list:
-            self.logger.warning('404: user page lost! -- '+current_url)
+            self.logger.warning('404/502: page lost! -- ' + current_url)
         elif response.status in self.token_overtime_status_list:
             self.token_index = (self.token_index + 1) % GitHub_token_number
             self.logger.info('github token changed: token_index = ' + str(self.token_index) + ' -- ' +current_url)

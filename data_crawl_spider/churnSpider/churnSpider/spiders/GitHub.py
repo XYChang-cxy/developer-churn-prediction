@@ -33,7 +33,7 @@ class GithubSpider(scrapy.Spider):
     scrapyed_list = []
     dbObject = dbHandle()
     cursor = dbObject.cursor()
-    cursor.execute("select repo_name from churn_search_repos_final where id > 10 and id <= 15")#############
+    cursor.execute("select repo_name from churn_search_repos_final where id = 23")
     # cursor.execute("select repo_name from churn_search_repos_final where repo_id = 7276954")
     repo_names = cursor.fetchall()
     for repo_name in repo_names:
@@ -70,14 +70,8 @@ class GithubSpider(scrapy.Spider):
     logger.addHandler(error_handler)
 
     # 爬取的数据的时间段
-    # start_time = '2020-01-01 00:00:00'###########
-    # end_time = '2022-01-01 23:59:59'##############
-    # start_time = '2018-01-01 00:00:00'  ###########
-    end_time = '2020-01-01 23:59:59'  ##############
-    start_time = '2015-10-01 00:00:00'  ###########
-    # end_time = '2018-01-01 23:59:59'  ##############
-    # start_time = '2014-01-01 00:00:00'  ###########
-    # end_time = '2015-10-01 23:59:59'  ##############
+    start_time = '2010-08-01 00:00:00'
+    end_time = '2021-10-15 23:59:59'
 
     fmt_GitHub = '%Y-%m-%dT%H:%M:%SZ'
     fmt_MySQL = '%Y-%m-%d %H:%M:%S'
@@ -710,8 +704,8 @@ class GithubSpider(scrapy.Spider):
                                 pull_comment_count = pull_detail_info['comments']
                                 pull_review_comment_count = pull_detail_info['review_comments']
                             except BaseException as e:
-                                self.logger.error('repo pull detail data crawl error! -- ' + pull_detail_url)
-                                self.logger.error(e)
+                                self.logger.critical('repo pull detail data crawl error! -- ' + pull_detail_url)
+                                self.logger.critical(e)
                                 pull_comment_count = 0 ###
                                 pull_review_comment_count = 0 ###
 
