@@ -7,6 +7,7 @@ from churn_data_analysis.draw_return_visit_curve import dbHandle
 import datetime
 fmt_MySQL = '%Y-%m-%d'
 
+
 # 根据时序图的数据记录文件重新绘制图像
 # time_sequence_dir: 时序图数据文件所在文件夹
 # divide_points_filename: 划分点文件名，若不为空则在曲线中标明划分点
@@ -157,7 +158,195 @@ def drawReturnVisitCurves(return_visit_dir,period_filename='',save_dir=''):
             plt.show()
 
 
+# 根据数据绘制流失率曲线
+# data_dir: 存储流失率数据的文件夹
+# step: 必须和文件中的step一致
+# mode: mode=0时绘制累计流失率曲线；mode=1时绘制实时流失率曲线,和数据文件一致
+# save_dir: 存储的目标文件夹，若为空字符串则不存储
+def drawChurnRateCurves(data_dir,step,mode,save_dir=''):
+    dbObject = dbHandle()
+    cursor = dbObject.cursor()
+    cursor.execute('select id,repo_id,created_at from churn_search_repos_final')
+    results = cursor.fetchall()
+
+    filenames = os.listdir(data_dir)
+    # 为filenames根据仓库id排序
+    id_filenames = dict()
+    for filename in filenames:
+        id = int(filename.split('_')[0])
+        if id not in id_filenames.keys():
+            id_filenames[id] = []
+        id_filenames[id].append(filename)
+    filenames = []
+    for i in range(30):
+        if i + 1 in id_filenames.keys():
+            for name in id_filenames[i + 1]:
+                filenames.append(name)
+
+    for result in results:
+        id = result[0]
+        repo_id = result[1]
+        create_time = result[2][0:10]
+        end_time = '2022-01-01'
+        filename = filenames[id-1]
+        user_count_list = []
+        churn_count_list = []
+        newcomer_count_list = []
+        step_list = []
+        with open(data_dir+'/'+filename,'r',encoding='utf-8')as f:
+            line = f.readline()
+            for count in line.split(',')[1:-1]:
+                user_count_list.append(int(count))
+            line = f.readline()
+            for count in line.split(',')[1:-1]:
+                churn_count_list.append(int(count))
+            line = f.readline()
+            if line.find(',')!=-1:
+                for count in line.split(',')[1:-1]:
+                    newcomer_count_list.append(int(count))
+        for i in range(1,len(user_count_list)+1):
+            step_list.append(i*step)
+        rate_list = [0.0]
+        for i in range(1, len(step_list)):
+            if user_count_list[i - 1] == 0:
+                rate_list.append(0.0)
+            else:
+                rate_list.append(float(churn_count_list[i]) / user_count_list[i - 1])
+        if mode == 0:
+            line_color = 'orangered'
+            ax2_color = 'limegreen'
+        else:
+            line_color = 'blue'
+            ax2_color = 'fuchsia'
+        fig = plt.figure(figsize=(10, 5))
+        ax = fig.add_subplot(111)
+
+        ax.plot(step_list, rate_list, label='开发者流失率', linewidth=1, color=line_color, marker=',')
+        ax.legend(loc="upper left")
+        ax.set_xlabel('时间（天）')
+        ax.set_ylabel('开发者流失率（%）')
+
+        if len(newcomer_count_list)>0:
+            ax2 = ax.twinx()
+            ax2.plot(step_list, newcomer_count_list[0:-1], label='新增开发者数', linewidth=1, color=ax2_color, marker=',')
+            ax2.legend(loc="upper right")
+            ax2.set_ylabel('新增开发者数')
+        title_content = '开发者流失率'
+        if len(newcomer_count_list)>0:
+            title_content += '/新增开发者数量'
+        if mode == 0:
+            title_content = '累计' + title_content
+        else:
+            title_content += '随时间变化'
+        plt.title(
+            '社区（repo_id = ' + str(repo_id) + '）' + create_time + '~' + end_time + '期间' + title_content + '曲线(step=' + str(
+                step) + ')')
+        if save_dir != '':
+            figname = filename.split('.')[0]+'-churn_rate-'+str(mode)+'.png'
+            plt.savefig(save_dir+'/'+figname)
+        plt.show()
+
+
+# 根据数据绘制流失率变化量曲线
+# data_dir: 存储流失率数据的文件夹
+# step: 必须和文件中的step一致
+# mode: mode=0时绘制累计流失率曲线；mode=1时绘制实时流失率曲线,和数据文件一致
+# save_dir: 存储的目标文件夹，若为空字符串则不存储
+def drawChurnRateDeltaCurve(data_dir,step,mode,save_dir=''):
+    dbObject = dbHandle()
+    cursor = dbObject.cursor()
+    cursor.execute('select id,repo_id,created_at from churn_search_repos_final')
+    results = cursor.fetchall()
+
+    filenames = os.listdir(data_dir)
+    # 为filenames根据仓库id排序
+    id_filenames = dict()
+    for filename in filenames:
+        id = int(filename.split('_')[0])
+        if id not in id_filenames.keys():
+            id_filenames[id] = []
+        id_filenames[id].append(filename)
+    filenames = []
+    for i in range(30):
+        if i + 1 in id_filenames.keys():
+            for name in id_filenames[i + 1]:
+                filenames.append(name)
+
+    for result in results:
+        id = result[0]
+        repo_id = result[1]
+        create_time = result[2][0:10]
+        end_time = '2022-01-01'
+        filename = filenames[id-1]
+        user_count_list = []
+        churn_count_list = []
+        newcomer_count_list = []
+        step_list = []
+        with open(data_dir+'/'+filename,'r',encoding='utf-8')as f:
+            line = f.readline()
+            for count in line.split(',')[1:-1]:
+                user_count_list.append(int(count))
+            line = f.readline()
+            for count in line.split(',')[1:-1]:
+                churn_count_list.append(int(count))
+            line = f.readline()
+            if line.find(',')!=-1:
+                for count in line.split(',')[1:-1]:
+                    newcomer_count_list.append(int(count))
+        for i in range(1,len(user_count_list)+1):
+            step_list.append(i*step)
+        rate_list = [0.0]
+        for i in range(1, len(step_list)):
+            if user_count_list[i - 1] == 0:
+                rate_list.append(0.0)
+            else:
+                rate_list.append(float(churn_count_list[i]) / user_count_list[i - 1])
+        delta_rate_list = [0.0]
+        for i in range(1,len(rate_list)):
+            delta_rate_list.append(rate_list[i]-rate_list[i-1])
+        delta_newcomer_list = [0.0]
+        if len(newcomer_count_list)>0:
+            for i in range(1, len(newcomer_count_list)):
+                delta_newcomer_list.append(newcomer_count_list[i - 1] - newcomer_count_list[i])
+        if mode == 0:
+            line_color = 'red'
+            ax2_color = 'green'
+        else:
+            line_color = 'cyan'
+            ax2_color = 'black'
+        fig = plt.figure(figsize=(10, 5))
+        ax = fig.add_subplot(111)
+
+        ax.plot(step_list, delta_rate_list, label='流失率变化量', linewidth=1, color=line_color, marker=',')
+        ax.legend(loc="upper left")
+        ax.set_xlabel('时间（天）')
+        ax.set_ylabel('流失率变化量（%）')
+
+        if len(newcomer_count_list)>0:
+            ax2 = ax.twinx()
+            ax2.plot(step_list, delta_newcomer_list[0:-1], label='newcomer变化量相反数', linewidth=1, color=ax2_color, marker=',')
+            ax2.legend(loc="upper right")
+            ax2.set_ylabel('newcomer变化量相反数')
+        title_content = '流失率变化量'
+        if len(newcomer_count_list)>0:
+            title_content += '/newcomer变化量'
+        if mode == 0:
+            title_content = '累计' + title_content
+        else:
+            title_content += '随时间变化'
+        plt.title(
+            '社区（repo_id = ' + str(repo_id) + '）' + create_time + '~' + end_time + '期间' + title_content + '曲线(step=' + str(
+                step) + ')')
+        if save_dir != '':
+            figname = filename.split('.')[0]+'-churn_rate-'+str(mode)+'.png'
+            plt.savefig(save_dir+'/'+figname)
+        plt.show()
+
+
 if __name__ == '__main__':
-    drawTimeSequencesUsingData('E:/bysj_project/time_sequence/time_sequence_data','repo_period_divide_points_30.txt','E:/bysj_project/time_sequence/time_sequence_charts_with_divide')
+    # drawTimeSequencesUsingData('E:/bysj_project/time_sequence/time_sequence_data','repo_period_divide_points_30.txt','E:/bysj_project/time_sequence/time_sequence_charts_with_divide')
     # drawReturnVisitCurves('E:/bysj_project/return_visit_rate/return_visit_rate_data','','C:/Users/cxy/Desktop/test')
     # drawReturnVisitCurves('E:/bysj_project/return_visit_rate_period/return_visit_rate_data_period','repo_periods_1.csv','C:/Users/cxy/Desktop/test')
+    # drawChurnRateCurves('E:/bysj_project/churn_rate_with_newcomer_28/churn_rate_data_0',28,0,'C:/Users/cxy/Desktop/test/test')
+    drawChurnRateDeltaCurve('E:/bysj_project/churn_rate_with_newcomer_28/churn_rate_data_1',28,1,'E:/bysj_project/churn_rate_with_newcomer_28/delta_curves_1')
+    pass
