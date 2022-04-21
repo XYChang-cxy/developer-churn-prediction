@@ -100,6 +100,124 @@ def getRepoUserList(repo_id,startDay,endDay,exceptList=None):
     return userList
 
 
+def compareRole(role1,role2):
+    if role1 == role2:
+        return 0
+    elif role1 == 'OWNER':
+        return 1
+    elif role1 == 'MEMBER' and role2 != 'OWNER':
+        return 1
+    elif role1 == 'COLLABORATOR' and (role2 == 'CONTRIBUTOR' or role2 == 'NONE'):
+        return 1
+    elif role1 == 'CONTRIBUTOR' and role2 == 'NONE':
+        return 1
+    else:
+        return -1
+
+
+# 获取社区一段时间内的开发者角色字典，不含仅fork和star的用户
+# repo_id:仓库id
+# startDay:筛选时间段的起始日期（包含）
+# endDay:筛选时间段的终止日期（不含）
+# exceptList:排除的用户id
+def getRepoUserRoleDict(repo_id,startDay,endDay,exceptList=None):
+    if exceptList is None:
+        exceptList = []
+    userList = []
+    userDict = dict()
+    dbObject = dbHandle()
+    cursor = dbObject.cursor()
+    cursor.execute(
+        'select distinct user_id,author_association from repo_issue ' \
+        'where repo_id = '+str(repo_id)+' and create_time between \"'+str(startDay)\
+        +'\" and \"'+str(endDay)+'\"'
+    )
+    results = cursor.fetchall()
+    for result in results:
+        if result[0] not in userList and result[0] not in exceptList:
+            userList.append(result[0])
+            userDict[result[0]]=result[1]
+        elif compareRole(result[1],userDict[result[0]]) > 0:
+            userDict[result[0]]=result[1]
+
+    cursor.execute(
+        'select distinct user_id,author_association from repo_issue_comment ' \
+        'where repo_id = ' + str(repo_id) + ' and create_time between \"' + str(startDay) \
+        + '\" and \"' + str(endDay) + '\"'
+    )
+    results = cursor.fetchall()
+    for result in results:
+        if result[0] not in userList and result[0] not in exceptList:
+            userList.append(result[0])
+            userDict[result[0]] = result[1]
+        elif compareRole(result[1], userDict[result[0]]) > 0:
+            userDict[result[0]] = result[1]
+
+    cursor.execute(
+        'select distinct user_id,author_association from repo_pull ' \
+        'where repo_id = ' + str(repo_id) + ' and create_time between \"' + str(startDay) \
+        + '\" and \"' + str(endDay) + '\"'
+    )
+    for result in results:
+        if result[0] not in userList and result[0] not in exceptList:
+            userList.append(result[0])
+            userDict[result[0]] = result[1]
+        elif compareRole(result[1], userDict[result[0]]) > 0:
+            userDict[result[0]] = result[1]
+
+    cursor.execute(
+        'select distinct user_id,author_association from repo_review ' \
+        'where repo_id = ' + str(repo_id) + ' and submit_time between \"' + str(startDay) \
+        + '\" and \"' + str(endDay) + '\"'
+    )
+    results = cursor.fetchall()
+    for result in results:
+        if result[0] not in userList and result[0] not in exceptList:
+            userList.append(result[0])
+            userDict[result[0]] = result[1]
+        elif compareRole(result[1], userDict[result[0]]) > 0:
+            userDict[result[0]] = result[1]
+
+    cursor.execute(
+        'select distinct user_id,author_association from repo_review_comment ' \
+        'where repo_id = ' + str(repo_id) + ' and create_time between \"' + str(startDay) \
+        + '\" and \"' + str(endDay) + '\"'
+    )
+    results = cursor.fetchall()
+    for result in results:
+        if result[0] not in userList and result[0] not in exceptList:
+            userList.append(result[0])
+            userDict[result[0]] = result[1]
+        elif compareRole(result[1], userDict[result[0]]) > 0:
+            userDict[result[0]] = result[1]
+
+    cursor.execute(
+        'select distinct user_id,author_association from repo_commit_comment ' \
+        'where repo_id = ' + str(repo_id) + ' and comment_time between \"' + str(startDay) \
+        + '\" and \"' + str(endDay) + '\"'
+    )
+    results = cursor.fetchall()
+    for result in results:
+        if result[0] not in userList and result[0] not in exceptList:
+            userList.append(result[0])
+            userDict[result[0]] = result[1]
+        elif compareRole(result[1], userDict[result[0]]) > 0:
+            userDict[result[0]] = result[1]
+
+    cursor.execute(
+        'select distinct user_id from repo_commit ' \
+        'where repo_id = ' + str(repo_id) + ' and commit_time between \"' + str(startDay) \
+        + '\" and \"' + str(endDay) + '\"'
+    )
+    results = cursor.fetchall()
+    for result in results:
+        if result[0] not in userList and result[0] not in exceptList:
+            userList.append(result[0])
+            userDict[result[0]] = 'NONE'
+
+    return userList,userDict
+
+
 # 滑动平均，曲线平滑处理
 # 参考链接：https://blog.csdn.net/weixin_42782150/article/details/107176500
 def moving_average(interval, windowsize):

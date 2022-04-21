@@ -135,7 +135,7 @@ def drawTimeSequences(repo_id,table_list,startDay,endDay,step=7,figname='',data_
 # 绘制所有仓库全部历史不同数据数量随时间变化曲线,保存图像和曲线数据
 # dir_name: 保存图像和曲线数据的文件夹的名称
 # table_list: 数据表名的列表
-def drawTimeSequenceForAllRepos(dir_name,table_list):
+def drawTimeSequenceForAllRepos(dir_name,table_list,step=30):
     dbObject = dbHandle()
     cursor = dbObject.cursor()
     order = 'select id,repo_name,repo_id,created_at from churn_search_repos_final'
@@ -149,7 +149,7 @@ def drawTimeSequenceForAllRepos(dir_name,table_list):
         repo_id = result[2]
         print()
         print(result[1]+':',startDay+' -- '+endDay)
-        drawTimeSequences(repo_id,table_list,startDay,endDay,30,figname,data_filename)
+        drawTimeSequences(repo_id,table_list,startDay,endDay,step,figname,data_filename)
 
 
 # 绘制某一仓库特定时间段内star和fork日均/累计数量随时间变化曲线
@@ -264,7 +264,7 @@ if __name__ == '__main__':
         'repo_review_comment'
     ]
     # drawTimeSequences(repo_id,table_list,startDay,endDay,step=30)
-    drawTimeSequenceForAllRepos('E:/bysj_project/time_sequence',table_list)
+    drawTimeSequenceForAllRepos('E:/bysj_project/time_sequence_28',table_list,28)
     # drawStarForkCountCurve(repo_id,startDay,endDay,30)
     # drawStarForkCountCurve(repo_id, startDay, endDay, 30,1)
     # drawForkStarForAllRepos('E:/bysj_project/time_sequence/time_sequence_fork_star')

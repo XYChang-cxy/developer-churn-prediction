@@ -97,6 +97,7 @@ def getRepoAllUserList(repo_id,startDay,endDay,exceptList=None):
     return userList
 
 
+# 使用Xlab提出的计算公式：活跃度=issue_comment_count + 2*issue_count + 3*pr_count + 4*review_comment_count+5*pr_merged_count
 def getUserActivity(user_id,repo_id,startDay,endDay,with_commit=False):
     count_list = [0,0,0,0,0,0,0,0,0,0]
     table_list = [
@@ -131,10 +132,11 @@ def getUserActivity(user_id,repo_id,startDay,endDay,with_commit=False):
                    + '\" and \"' + str(endDay) + '\"')
         result = cursor.fetchone()
         count_list[i] = result[0]
-    userActivity = count_list[0] + 2 * count_list[1] + 3 * count_list[2] + 4 * count_list[3] + 2 * count_list[4] + \
-                   count_list[5] + 2 * count_list[6]
-    if with_commit == True:##########################?????????????????????
-        userActivity += 3 * count_list[7] + 2 * count_list[8] + 2 * count_list[9]
+    # userActivity = count_list[0] + 2 * count_list[1] + 3 * count_list[2] + 4 * count_list[3] + 2 * count_list[4] + \
+    #                count_list[5] + 2 * count_list[6]
+    userActivity = count_list[0] + 2 * count_list[1] + 3 * count_list[2] + 4 * count_list[3] + 5 * count_list[4]
+    if with_commit == True:# 是否包含commit数量
+        userActivity += count_list[7]
     # print('\t',repo_id,user_id,userActivity)
     return userActivity
 
