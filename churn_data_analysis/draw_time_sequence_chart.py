@@ -5,6 +5,7 @@ import pymysql
 import datetime
 from churn_data_analysis import draw_return_visit_curve
 from churn_data_analysis.draw_return_visit_curve import dbHandle
+from churn_data_analysis.draw_time_sequence_new_metric import *
 
 matplotlib.rcParams['font.sans-serif'] = ['KaiTi']
 matplotlib.rcParams['axes.unicode_minus'] = False
@@ -264,8 +265,64 @@ if __name__ == '__main__':
         'repo_review_comment'
     ]
     # drawTimeSequences(repo_id,table_list,startDay,endDay,step=30)
-    drawTimeSequenceForAllRepos('E:/bysj_project/time_sequence_28',table_list,28)
+    # drawTimeSequenceForAllRepos('E:/bysj_project/time_sequence_28',table_list,28)
     # drawStarForkCountCurve(repo_id,startDay,endDay,30)
     # drawStarForkCountCurve(repo_id, startDay, endDay, 30,1)
     # drawForkStarForAllRepos('E:/bysj_project/time_sequence/time_sequence_fork_star')
 
+    # insertIssueResponseData()
+    # insertPullResponseData()
+
+    # drawNewMetricCurveForRepos()
+
+    response_time_curve_dir_thres = r'E:\bysj_project\new_metrics\time_sequence_28\with_threshold\first_response_time_charts'
+    response_time_data_dir_thres = r'E:\bysj_project\new_metrics\time_sequence_28\with_threshold\first_response_time_data'
+    core_response_time_curve_dir_thres = r'E:\bysj_project\new_metrics\time_sequence_28\with_threshold\core_first_response_time_charts'
+    core_response_time_data_dir_thres = r'E:\bysj_project\new_metrics\time_sequence_28\with_threshold\core_first_response_time_data'
+    open_age_curve_dir_thres = r'E:\bysj_project\new_metrics\time_sequence_28\with_threshold\open_age_charts'
+    open_age_data_dir_thres = r'E:\bysj_project\new_metrics\time_sequence_28\with_threshold\open_age_data'
+
+    filenames = os.listdir(r'E:\bysj_project\time_sequence_28\time_sequence_charts')
+    id_filename = dict()
+    for filename in filenames:
+        id_filename[int(filename.split('_')[0])] = filename
+
+    id = 30
+    dbObject = dbHandle()
+    cursor = dbObject.cursor()
+    cursor.execute('select repo_id,created_at from churn_search_repos_final where id = ' + str(id))
+    result = cursor.fetchone()
+    repo_id = result[0]
+    startDay = result[1][0:10]
+    endDay = '2022-01-01'
+
+    fig_name = id_filename[id]
+    data_filename = id_filename[id].replace('.png', '.csv')
+
+    # drawResponseTimeCurveByComment(repo_id,startDay,endDay,28,0)
+    # drawResponseTimeCurveByComment(repo_id, startDay, endDay, 28, 1)
+
+    threshold = 50
+
+    # drawResponseTimeCurveByComment(repo_id, startDay, endDay, 28, 0, except_threshold=threshold)
+    # drawResponseTimeCurveByComment(repo_id, startDay, endDay, 28, 1, except_threshold=threshold)
+
+    drawResponseTimeCurveByComment(repo_id, startDay, endDay, 28, 0,except_threshold=threshold,
+                                   fig_name=response_time_curve_dir_thres+'/'+fig_name,
+                                   data_filename=response_time_data_dir_thres+'/'+data_filename)
+    drawResponseTimeCurveByComment(repo_id, startDay, endDay, 28, 1,except_threshold=threshold,
+                                   fig_name=core_response_time_curve_dir_thres+'/'+fig_name,
+                                   data_filename=core_response_time_data_dir_thres+'/'+data_filename)
+
+    '''response_time_threshold_list = [100,100,50,100,150]'''
+
+    # drawOpenIssuePRAgeCurve(repo_id, startDay, endDay, 28, except_threshold=-1)
+
+    # threshold = 600
+    # drawOpenIssuePRAgeCurve(repo_id, startDay, endDay, 28, except_threshold=threshold)
+
+    # drawOpenIssuePRAgeCurve(repo_id, startDay, endDay, 28, except_threshold=threshold,
+    #                         fig_name=open_age_curve_dir_thres+'/'+fig_name,
+    #                         data_filename=open_age_data_dir_thres+'/'+data_filename)
+
+    '''open_age_threshold_list = [300,-1,-1,-1,-1]'''

@@ -1,4 +1,5 @@
-# 该文件代码用户分析仓库流失人员的组成比例，分类时根据活跃度、参与时间、合作程度、角色等角度考虑
+# 该文件代码用户分析仓库流失人员的整体组成比例，分类时根据活跃度、参与时间、合作程度、角色等角度考虑
+# 和user_classification_analysis的功能类似，但划分主体不同，该代码对流失开发者进行统计求分类阈值
 import os
 from churn_data_analysis.draw_time_sequence_chart import dbHandle
 import datetime
@@ -434,7 +435,7 @@ def getChurnerDataDistribution(repo_id,user_filename,user_data_filename,mode=0,s
             plt.axvline(threshold_value,ymin=0,ymax=0.98,linestyle='--',color='orangered',
                         label=line_label)
             plt.legend(loc="upper right")
-        plt.title(str(repo_id) + ' ' + mode_name[mode] + '分布直方图')
+        plt.title(str(repo_id) + ' 流失开发者' + mode_name[mode] + '分布直方图')
         if fig_name != '':
             plt.savefig(fig_name)
         plt.show()
@@ -457,7 +458,7 @@ def getChurnerDataDistribution(repo_id,user_filename,user_data_filename,mode=0,s
             x.append(key)
             y.append(num_dict[key])
         plt.bar(x, y)
-        plt.title(str(repo_id) + ' ' + mode_name[mode] + '分布图')
+        plt.title(str(repo_id) + ' 流失开发者' + mode_name[mode] + '分布图')
         if fig_name != '':
             plt.savefig(fig_name)
         plt.show()
@@ -502,7 +503,7 @@ def saveChurnerDataDistributionForRepos(user_dir,user_data_dir,histogram_dir,thr
             save_filename = histogram_dir + '/' + sub_dir + '/' + id_user_data_filename[id].replace('.csv','.png')
             mode = int(sub_dir.split('_')[0])
             threshold_value = getChurnerDataDistribution(repo_id, user_filename, user_data_filename, mode, step,
-                                                         save_filename=save_filename)[1]
+                                                         fig_name=save_filename)[1]
             mode_threshold[mode] = threshold_value
             print('id:', id, '\tmode:', mode, '\tdir name:', sub_dir, '\tthreshold:',threshold_value)
         with open(threshold_filename,'a',encoding='utf-8')as f:
@@ -691,8 +692,8 @@ def saveImpChurnerDistributionForRepos(user_dir,user_data_dir,score_fig_dir,scor
                                                                              fig_name, threshold_list, 28)
         with open(score_count_filename,'a',encoding='utf-8')as f:
             content = str(id)+','+str(repo_id)+','
-            for count in score_count:
-                content += str(count)+','
+            for score in range(6):
+                content += str(score_count[score])+','
             content += "{0:.3f}".format(100.0*imp_rate)+',\n'
             f.write(content)
         f.close()
