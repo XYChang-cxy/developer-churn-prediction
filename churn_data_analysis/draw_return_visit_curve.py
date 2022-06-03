@@ -371,8 +371,9 @@ if __name__ == '__main__':
     endDay = '2016-09-25'
     repo_id = 192904
     # drawReturnVisitRateCurve(repo_id,startDay,endDay)
-    drawCurvesForAllRepos('E:/bysj_project/return_visit_rate')
-    drawCurvesForAllRepoPeriods('repo_periods_1.csv','E:/bysj_project/return_visit_rate_period')
+    # drawCurvesForAllRepos('E:/bysj_project/return_visit_rate')
+    # drawCurvesForAllRepoPeriods('repo_periods_1.csv','E:/bysj_project/return_visit_rate_period')
+    drawCurvesForAllRepoPeriods('repo_periods_new_1.csv', 'E:/bysj_project/return_visit_rate_period_new')
 
     '''weeks = []
     for i in range(52):

@@ -316,7 +316,7 @@ if __name__ == '__main__':
     # 趋势分析
     save_dir = 'E:/bysj_project/net_churn_rate_trend'
     user_dir = 'E:/bysj_project/repo_users_by_period/data_28'
-    # trendAnalysisForRepos(save_dir,user_dir,churn_limit_lists,start_days_list,period_length,28)
+    trendAnalysisForRepos(save_dir,user_dir,churn_limit_lists,start_days_list,period_length,28)
 
     # 单个仓库频率分析和描述性分析
     save_dir = 'E:/bysj_project/net_churn_rate_frequency'
@@ -356,5 +356,5 @@ if __name__ == '__main__':
             std_list.append(values[4])
     # drawRateHistogram(std_list,'仓库流失率标准差频率分布图')
     drawRateHistogram(mean_list, '仓库平均流失率频率分布图', 'E:/bysj_project/net_churn_rate_frequency/mean_rate_histogram.png')
-    drawBoxplot([mean_list.copy()], ['平均流失率'],'仓库平均流失率箱线图', 'E:/bysj_project/net_churn_rate_frequency/mean_rate_boxplot.png')
-    descriptiveAnalysis(mean_list,'E:/bysj_project/net_churn_rate_frequency/mean_rate_descriptive.csv')
+    # drawBoxplot([mean_list.copy()], ['平均流失率'],'仓库平均流失率箱线图', 'E:/bysj_project/net_churn_rate_frequency/mean_rate_boxplot.png')
+    # descriptiveAnalysis(mean_list,'E:/bysj_project/net_churn_rate_frequency/mean_rate_descriptive.csv')

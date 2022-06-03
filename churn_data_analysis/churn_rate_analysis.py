@@ -172,17 +172,19 @@ def drawRateHistogram(data_list,title='流失率频率分布直方图',figname='
     x = np.arange(min_val*0.95,max_val*1.05,x_step)
     y = normfun(x,mean_val,std_val)
 
-    plt.figure(figsize=(8,5))
+    plt.figure(figsize=(7,4))
 
-    plt.hist(data_list, bins=30, rwidth=0.9, density=True,range=(0.0,1.0))
+    plt.hist(data_list, bins=30, rwidth=0.9, density=True,range=(0.0,1.0),
+             color='#6699DD',alpha=0.9)
+             # color='cornflowerblue',alpha=0.7)
 
-    plt.plot(x,y, linewidth=2, marker=',')
+    plt.plot(x,y, linewidth=2, marker=',',color='coral',label='标准正态分布曲线')
     x_ticks = np.arange(0.0,1.05,0.1)
     plt.xticks(x_ticks)
-    # plt.legend(loc='upper left')
-    plt.title(title)
+    plt.legend(loc='upper right')
+    # plt.title(title)
     if figname!='':
-        plt.savefig(figname)
+        plt.savefig(figname,dpi=300,bbox_inches = 'tight')
     plt.show()
 
 

@@ -91,7 +91,9 @@ def drawTimeSequences(repo_id,table_list,startDay,endDay,step=7,figname='',data_
             if table_name == 'repo_user':
                 item_count = draw_return_visit_curve.getRepoUserList(repo_id, start_day, end_day)
             else:
-                if table_name=='repo_review':
+                if table_name == 'repo_pull_merged':
+                    time_name = 'merge_time'
+                elif table_name=='repo_review':
                     time_name = 'submit_time'
                 elif table_name == 'repo_commit':
                     time_name = 'commit_time'
@@ -101,6 +103,14 @@ def drawTimeSequences(repo_id,table_list,startDay,endDay,step=7,figname='',data_
                     time_name = 'star_time'
                 else:
                     time_name = 'create_time'
+                # if table_name == 'repo_issue':
+                #     order = 'select count(*) from repo_issue r1 where repo_id = '+str(repo_id) \
+                #             +' and create_time between \"' + start_day + '\" and \"' + end_day +'\"'\
+                #             +' and not exists (select id from repo_pull r2 where r1.repo_id=r2.repo_id' \
+                #              ' and r1.issue_number = r2.pull_number)'
+                # else:
+                #     order = 'select count(*) from ' + table_name + ' where repo_id = ' + str(
+                #         repo_id) + ' and ' + time_name + ' between \"' + start_day + '\" and \"' + end_day +'\"'
                 order = 'select count(*) from ' + table_name + ' where repo_id = ' + str(
                     repo_id) + ' and ' + time_name + ' between \"' + start_day + '\" and \"' + end_day +'\"'
                 # print(order)
@@ -139,7 +149,9 @@ def drawTimeSequences(repo_id,table_list,startDay,endDay,step=7,figname='',data_
 def drawTimeSequenceForAllRepos(dir_name,table_list,step=30):
     dbObject = dbHandle()
     cursor = dbObject.cursor()
-    order = 'select id,repo_name,repo_id,created_at from churn_search_repos_final'
+    order = 'select id,repo_name,repo_id,created_at from churn_search_repos_final ' \
+            'where id > 2 and id != 8 and id != 14 and id != 25 and id != 26 and id != 27 and id != 29'
+            # 'where id <= 2 or id = 8 or id = 14 or id = 25 or id = 26 or id = 27 or id = 29'
     cursor.execute(order)
     results = cursor.fetchall()
     for result in results:
@@ -258,14 +270,13 @@ if __name__ == '__main__':
         'repo_pull',
         'repo_commit',
         'repo_review',
-        # 'repo_fork',
-        # 'repo_star',
         'repo_issue_comment',
         'repo_commit_comment',
-        'repo_review_comment'
+        'repo_review_comment',
+        'repo_pull_merged'  ##################### 2022-05-19新增
     ]
     # drawTimeSequences(repo_id,table_list,startDay,endDay,step=30)
-    # drawTimeSequenceForAllRepos('E:/bysj_project/time_sequence_28',table_list,28)
+    drawTimeSequenceForAllRepos('E:/bysj_project/time_sequence_new_30',table_list,30)
     # drawStarForkCountCurve(repo_id,startDay,endDay,30)
     # drawStarForkCountCurve(repo_id, startDay, endDay, 30,1)
     # drawForkStarForAllRepos('E:/bysj_project/time_sequence/time_sequence_fork_star')
@@ -275,7 +286,7 @@ if __name__ == '__main__':
 
     # drawNewMetricCurveForRepos()
 
-    response_time_curve_dir_thres = r'E:\bysj_project\new_metrics\time_sequence_28\with_threshold\first_response_time_charts'
+    '''response_time_curve_dir_thres = r'E:\bysj_project\new_metrics\time_sequence_28\with_threshold\first_response_time_charts'
     response_time_data_dir_thres = r'E:\bysj_project\new_metrics\time_sequence_28\with_threshold\first_response_time_data'
     core_response_time_curve_dir_thres = r'E:\bysj_project\new_metrics\time_sequence_28\with_threshold\core_first_response_time_charts'
     core_response_time_data_dir_thres = r'E:\bysj_project\new_metrics\time_sequence_28\with_threshold\core_first_response_time_data'
@@ -312,7 +323,7 @@ if __name__ == '__main__':
                                    data_filename=response_time_data_dir_thres+'/'+data_filename)
     drawResponseTimeCurveByComment(repo_id, startDay, endDay, 28, 1,except_threshold=threshold,
                                    fig_name=core_response_time_curve_dir_thres+'/'+fig_name,
-                                   data_filename=core_response_time_data_dir_thres+'/'+data_filename)
+                                   data_filename=core_response_time_data_dir_thres+'/'+data_filename)'''
 
     '''response_time_threshold_list = [100,100,50,100,150]'''
 

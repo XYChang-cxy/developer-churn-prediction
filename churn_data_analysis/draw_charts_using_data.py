@@ -134,16 +134,18 @@ def drawReturnVisitCurves(return_visit_dir,period_filename='',save_dir=''):
             for rate in f.readline().strip(',\n').split(','):
                 rates.append(float(rate))
             weeks = range(1,53)
-            plt.plot(weeks, rates, label='用户回访率', linewidth=1, color='g', marker='.', markerfacecolor='w')
+            plt.figure(figsize=(5,3))
+            plt.plot(weeks, rates, label='流失开发者回访率', linewidth=1,  marker='.', color='mediumblue',
+                     markerfacecolor='w',alpha=0.7)
             elbow = int(f.readline().split(',')[0])
             rate_10_week = int(f.readline().split(',')[0])
-            plt.axvline(x=elbow, ymin=0.05, ymax=0.95, color='blue', linestyle='--',
+            plt.axvline(x=elbow, ymin=0.05, ymax=0.95,  linestyle='--',color='orangered',alpha=0.7,
                         label='elbow = ' + str(elbow))
-            plt.axvline(x=rate_10_week, ymin=0.05, ymax=0.95, color='orangered', linestyle='--',
-                        label='10% rate = ' + str(rate_10_week))
+            # plt.axvline(x=rate_10_week, ymin=0.05, ymax=0.95, color='orangered', linestyle='--',
+            #             label='10% rate = ' + str(rate_10_week))
             plt.legend(loc="upper right")
             plt.xlabel('流失期限（周）')
-            plt.ylabel('用户回访率（%）')
+            plt.ylabel('流失开发者回访率（%）')
             id = int(filename.split('_')[0])
             if period_filename == '':
                 startDay = create_times[id - 1]
@@ -151,10 +153,10 @@ def drawReturnVisitCurves(return_visit_dir,period_filename='',save_dir=''):
             else:
                 period_id = int(filename.strip('.csv').split('-')[-1])
                 startDay,endDay = id_periods[id][period_id].split('--')
-            plt.title(
-                '社区（repo_id = ' + str(repo_id_list[id - 1]) + '）' + startDay + '~' + endDay + '期间用户回访率曲线')
+            # plt.title(
+            #     '社区（repo_id = ' + str(repo_id_list[id - 1]) + '）' + startDay + '~' + endDay + '期间用户回访率曲线')
             if save_dir != '':
-                plt.savefig(save_dir + '/' + filename.replace('.csv', '.png'))
+                plt.savefig(save_dir + '/' + filename.replace('.csv', '.png'),dpi=300,bbox_inches = 'tight')
             plt.show()
 
 
@@ -348,5 +350,8 @@ if __name__ == '__main__':
     # drawReturnVisitCurves('E:/bysj_project/return_visit_rate/return_visit_rate_data','','C:/Users/cxy/Desktop/test')
     # drawReturnVisitCurves('E:/bysj_project/return_visit_rate_period/return_visit_rate_data_period','repo_periods_1.csv','C:/Users/cxy/Desktop/test')
     # drawChurnRateCurves('E:/bysj_project/churn_rate_with_newcomer_28/churn_rate_data_0',28,0,'C:/Users/cxy/Desktop/test/test')
-    drawChurnRateDeltaCurve('E:/bysj_project/churn_rate_with_newcomer_28/churn_rate_data_1',28,1,'E:/bysj_project/churn_rate_with_newcomer_28/delta_curves_1')
+    # drawChurnRateDeltaCurve('E:/bysj_project/churn_rate_with_newcomer_28/churn_rate_data_1',28,1,'E:/bysj_project/churn_rate_with_newcomer_28/delta_curves_1')
+
+    drawReturnVisitCurves('E:/bysj_project/return_visit_rate/return_visit_rate_data','','C:/Users/cxy/Desktop/return_visit_curve')
+
     pass
