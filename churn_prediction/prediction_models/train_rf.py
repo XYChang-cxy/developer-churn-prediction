@@ -11,10 +11,10 @@ import pandas as pd
 import random
 
 
-def trainRF(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
+def trainRF(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
             n_estimators=100,max_depth=None,min_samples_leaf=1,min_samples_split=2,max_features='sqrt',
             save_dir='rf_models'):
-    train_data, test_data, train_label, test_label = getModelData(balanced_data_dir, period_length, overlap_ratio,
+    train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     model = RandomForestClassifier(n_estimators=n_estimators,max_depth=max_depth,min_samples_leaf=min_samples_leaf,
                                    min_samples_split=min_samples_split,max_features=max_features)
@@ -24,7 +24,7 @@ def trainRF(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_coun
     print("训练集：")
     print('Precesion: %.4f' % precision_score(train_label, y_pred))
     print('Recall: %.4f' % recall_score(train_label, y_pred))
-    print('F1-score: %.4f' % f1_score(train_label, y_pred))
+    print('F1-score: %.4f' % f1_score(train_label, y_pred,average='binary'))
     print('Accuracy: %.4f' % accuracy_score(train_label, y_pred))
     print('AUC: %.4f' % roc_auc_score(train_label, y_pred))
 
@@ -32,7 +32,7 @@ def trainRF(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_coun
     print("测试集：")
     print('Precesion: %.4f' % precision_score(test_label, y_pred))
     print('Recall: %.4f' % recall_score(test_label, y_pred))
-    print('F1-score: %.4f' % f1_score(test_label, y_pred))
+    print('F1-score: %.4f' % f1_score(test_label, y_pred,average='binary'))
     print('Accuracy: %.4f' % accuracy_score(test_label, y_pred))
     print('AUC: %.4f' % roc_auc_score(test_label, y_pred))
 
@@ -43,9 +43,9 @@ def trainRF(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_coun
 
 
 # https://www.cnblogs.com/pinard/p/6160412.html
-def gridSearchForRF(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
-                    scoring='roc_auc',save_dir='rf_models'):
-    train_data, test_data, train_label, test_label = getModelData(balanced_data_dir, period_length, overlap_ratio,
+def gridSearchForRF(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
+                    scoring='roc_auc',save_dir='rf_models',if_save=True):
+    train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     # 对n_estimators进行网格搜索
     param_test1 = {'n_estimators': np.linspace(100, 1000, 10, dtype=int)}
@@ -109,11 +109,36 @@ def gridSearchForRF(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_t
     print("auroc:\t", roc_auc_score(test_label, test_pred))
     print("precision:\t", precision_score(test_label, test_pred))
     print("recall:\t", recall_score(test_label, test_pred))
-    print("micro f1_score:\t", f1_score(test_label, test_pred, average='micro'))
+    print("f1_score:\t", f1_score(test_label, test_pred, average='binary'))
 
-    s = input('Do you want to save this model?[Y/n]')
+    train_pred = best_model.predict(train_data)
+
+    ################################################################################3
+    with open('rf_result.csv', 'a', encoding='utf-8')as f:
+        tmp_index = split_balanced_data_dir.find('repo')
+        f.write(split_balanced_data_dir[tmp_index:tmp_index + 7] + ',' +
+                str(period_length) + ',' + str(overlap_ratio) + ',' + str(scoring) + ',\n')
+        f.write('train accuracy,' + str(accuracy_score(train_label, train_pred)) + ',\n')
+        f.write('train precision,' + str(precision_score(train_label, train_pred)) + ',\n')
+        f.write('train recall,' + str(recall_score(train_label, train_pred)) + ',\n')
+        f.write('train f1_score,' + str(f1_score(train_label, train_pred, average='binary')) + ',\n')
+        f.write('train auroc,' + str(roc_auc_score(train_label, train_pred)) + ',\n')
+
+        f.write('test accuracy,' + str(accuracy_score(test_label, test_pred)) + ',\n')
+        f.write('test precision,' + str(precision_score(test_label, test_pred)) + ',\n')
+        f.write('test recall,' + str(recall_score(test_label, test_pred)) + ',\n')
+        f.write('test f1_score,' + str(f1_score(test_label, test_pred, average='binary')) + ',\n')
+        f.write('test auroc,' + str(roc_auc_score(test_label, test_pred)) + ',\n')
+        f.write('\n')
+    #################################################################################
+
+    if if_save:
+        s = 'Y'
+    else:
+        s = input('Do you want to save this model?[Y/n]')
     if s == 'Y' or s == 'y' or s == '':
-        model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'rf_best_model_'+scoring+'.joblib'
+        model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'rf_best_model_'+scoring+\
+                         '-'+str(period_length)+'-'+str(overlap_ratio)+'.joblib'
         dump(best_model, save_dir + '\\' + model_filename)
 
     return best_estimators,best_max_depth,best_min_samples_split,best_min_samples_leaf,best_max_features

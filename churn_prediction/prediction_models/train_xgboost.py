@@ -13,11 +13,11 @@ import pandas as pd
 import random
 
 
-def trainXGBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
+def trainXGBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
                  n_estimators=500,max_depth=6,min_child_weight=1,subsample=1,colsample_bytree=1,
                  gamma=0,reg_lambda=1,reg_alpha=0,eta=0.3,
                  save_dir='xgboost_models'):
-    train_data, test_data, train_label, test_label = getModelData(balanced_data_dir, period_length, overlap_ratio,
+    train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     for i in range(train_label.shape[0]):
         if train_label[i]==-1:
@@ -44,7 +44,7 @@ def trainXGBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type
     print("训练集：")
     print('Precesion: %.4f' % precision_score(train_label, y_pred))
     print('Recall: %.4f' % recall_score(train_label, y_pred))
-    print('F1-score: %.4f' % f1_score(train_label, y_pred))
+    print('F1-score: %.4f' % f1_score(train_label, y_pred,average='binary'))
     print('Accuracy: %.4f' % accuracy_score(train_label, y_pred))
     print('AUC: %.4f' % roc_auc_score(train_label, y_pred))
 
@@ -52,7 +52,7 @@ def trainXGBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type
     print("测试集：")
     print('Precesion: %.4f' % precision_score(test_label, y_pred))
     print('Recall: %.4f' % recall_score(test_label, y_pred))
-    print('F1-score: %.4f' % f1_score(test_label, y_pred))
+    print('F1-score: %.4f' % f1_score(test_label, y_pred,average='binary'))
     print('Accuracy: %.4f' % accuracy_score(test_label, y_pred))
     print('AUC: %.4f' % roc_auc_score(test_label, y_pred))
 
@@ -62,9 +62,9 @@ def trainXGBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type
         dump(model, save_dir + '\\' + model_filename)
 
 
-def gridSearchForXGBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
-                         save_dir='xgboost_models',scoring='roc_auc'):
-    train_data, test_data, train_label, test_label = getModelData(balanced_data_dir, period_length, overlap_ratio,
+def gridSearchForXGBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
+                         save_dir='xgboost_models',scoring='roc_auc',if_save=True):
+    train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     for i in range(train_label.shape[0]):
         if train_label[i]==-1:
@@ -234,11 +234,36 @@ def gridSearchForXGBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,d
     print("auroc:\t", roc_auc_score(test_label, test_pred))
     print("precision:\t", precision_score(test_label, test_pred))
     print("recall:\t", recall_score(test_label, test_pred))
-    print("micro f1_score:\t", f1_score(test_label, test_pred, average='micro'))
+    print("f1_score:\t", f1_score(test_label, test_pred, average='binary'))
 
-    s = input('Do you want to save this model?[Y/n]')
+    train_pred = best_model.predict(train_data)
+
+    ################################################################################3
+    with open('xgboost_result.csv','a',encoding='utf-8')as f:
+        tmp_index = split_balanced_data_dir.find('repo')
+        f.write(split_balanced_data_dir[tmp_index:tmp_index + 7] + ',' +
+                str(period_length) + ',' + str(overlap_ratio) + ',' + str(scoring) + ',\n')
+        f.write('train accuracy,' + str(accuracy_score(train_label, train_pred)) + ',\n')
+        f.write('train precision,' + str(precision_score(train_label, train_pred)) + ',\n')
+        f.write('train recall,' + str(recall_score(train_label, train_pred)) + ',\n')
+        f.write('train f1_score,' + str(f1_score(train_label, train_pred, average='binary')) + ',\n')
+        f.write('train auroc,' + str(roc_auc_score(train_label, train_pred)) + ',\n')
+
+        f.write('test accuracy,' + str(accuracy_score(test_label, test_pred)) + ',\n')
+        f.write('test precision,' + str(precision_score(test_label, test_pred)) + ',\n')
+        f.write('test recall,' + str(recall_score(test_label, test_pred)) + ',\n')
+        f.write('test f1_score,' + str(f1_score(test_label, test_pred, average='binary')) + ',\n')
+        f.write('test auroc,' + str(roc_auc_score(test_label, test_pred)) + ',\n')
+        f.write('\n')
+    #################################################################################
+
+    if if_save:
+        s = 'Y'
+    else:
+        s = input('Do you want to save this model?[Y/n]')
     if s == 'Y' or s == 'y' or s == '':
-        model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'xgboost_best_model_'+scoring+'.joblib'
+        model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'xgboost_best_model_'+scoring+\
+                         '-'+str(period_length)+'-'+str(overlap_ratio)+'.joblib'
         dump(best_model, save_dir + '\\' + model_filename)
 
     return other_params

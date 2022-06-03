@@ -53,8 +53,8 @@ def my_adaboost_clf(X_train, Y_train, X_test, Y_test, num_boost_round=300, weak_
 
 
 # 训练自定义的adaboost并返回结果
-def trainMyAdaBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,num_boost_round=300):
-    train_data, test_data, train_label, test_label = getModelData(balanced_data_dir, period_length, overlap_ratio,
+def trainMyAdaBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,num_boost_round=300):
+    train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     train_pred, test_pred = my_adaboost_clf(train_data, train_label, test_data, test_label,
                                             num_boost_round=num_boost_round,
@@ -65,22 +65,22 @@ def trainMyAdaBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_t
     print("训练集：")
     print('Precesion: %.4f' % precision_score(train_label, train_pred))
     print('Recall: %.4f' % recall_score(train_label, train_pred))
-    print('F1-score: %.4f' % f1_score(train_label, train_pred))
+    print('F1-score: %.4f' % f1_score(train_label, train_pred, average='binary'))
     print('Accuracy: %.4f' % accuracy_score(train_label, train_pred))
     print('AUC: %.4f' % roc_auc_score(train_label, train_pred))
 
     print("测试集：")
     print('Precesion: %.4f' % precision_score(test_label, test_pred))
     print('Recall: %.4f' % recall_score(test_label, test_pred))
-    print('F1-score: %.4f' % f1_score(test_label, test_pred))
+    print('F1-score: %.4f' % f1_score(test_label, test_pred, average='binary'))
     print('Accuracy: %.4f' % accuracy_score(test_label, test_pred))
     print('AUC: %.4f' % roc_auc_score(test_label, test_pred))
 
 
-def trainAdaBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
+def trainAdaBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
                   dt_max_depth=1,n_estimators=50,learning_rate=1.0,random_state=42,
                   save_dir='adaboost_models'):
-    train_data, test_data, train_label, test_label = getModelData(balanced_data_dir, period_length, overlap_ratio,
+    train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     model = AdaBoostClassifier(base_estimator=DecisionTreeClassifier(max_depth=dt_max_depth,random_state=1),
                                n_estimators=n_estimators,learning_rate=learning_rate,random_state=random_state)
@@ -89,7 +89,7 @@ def trainAdaBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_typ
     print("训练集：")
     print('Precesion: %.4f' % precision_score(train_label, y_pred))
     print('Recall: %.4f' % recall_score(train_label, y_pred))
-    print('F1-score: %.4f' % f1_score(train_label, y_pred))
+    print('F1-score: %.4f' % f1_score(train_label, y_pred, average='binary'))
     print('Accuracy: %.4f' % accuracy_score(train_label, y_pred))
     print('AUC: %.4f' % roc_auc_score(train_label, y_pred))
 
@@ -97,7 +97,7 @@ def trainAdaBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_typ
     print("测试集：")
     print('Precesion: %.4f' % precision_score(test_label, y_pred))
     print('Recall: %.4f' % recall_score(test_label, y_pred))
-    print('F1-score: %.4f' % f1_score(test_label, y_pred))
+    print('F1-score: %.4f' % f1_score(test_label, y_pred, average='binary'))
     print('Accuracy: %.4f' % accuracy_score(test_label, y_pred))
     print('AUC: %.4f' % roc_auc_score(test_label, y_pred))
 
@@ -107,9 +107,9 @@ def trainAdaBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_typ
         dump(model, save_dir + '\\' + model_filename)
 
 
-def gridSearchForAdaBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,scoring='roc_auc',
-                          save_dir='adaboost_models'):
-    train_data, test_data, train_label, test_label = getModelData(balanced_data_dir, period_length, overlap_ratio,
+def gridSearchForAdaBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,scoring='roc_auc',
+                          save_dir='adaboost_models',if_save=True):
+    train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     model = AdaBoostClassifier(learning_rate=0.1,random_state=42)
     cv_params={'n_estimators':np.linspace(100, 1000, 10, dtype=int)}
@@ -158,12 +158,40 @@ def gridSearchForAdaBoost(balanced_data_dir,period_length=120,overlap_ratio=0.0,
     print("auroc:\t", roc_auc_score(test_label, test_pred))
     print("precision:\t", precision_score(test_label, test_pred))
     print("recall:\t", recall_score(test_label, test_pred))
-    print("micro f1_score:\t", f1_score(test_label, test_pred, average='micro'))
+    print("f1_score:\t", f1_score(test_label, test_pred, average='binary'))
 
-    s = input('Do you want to save this model?[Y/n]')
+    train_pred = best_model.predict(train_data)
+
+    ################################################################################3
+    with open('adaboost_result.csv', 'a', encoding='utf-8')as f:
+        tmp_index = split_balanced_data_dir.find('repo')
+        f.write(split_balanced_data_dir[tmp_index:tmp_index+7]+','+
+                str(period_length) + ',' + str(overlap_ratio) +','+str(scoring)+ ',\n')
+        f.write('train accuracy,' + str(accuracy_score(train_label, train_pred)) + ',\n')
+        f.write('train precision,' + str(precision_score(train_label, train_pred)) + ',\n')
+        f.write('train recall,' + str(recall_score(train_label, train_pred)) + ',\n')
+        f.write('train f1_score,' + str(f1_score(train_label, train_pred, average='binary')) + ',\n')
+        f.write('train auroc,' + str(roc_auc_score(train_label, train_pred)) + ',\n')
+
+        f.write('test accuracy,' + str(accuracy_score(test_label, test_pred)) + ',\n')
+        f.write('test precision,' + str(precision_score(test_label, test_pred)) + ',\n')
+        f.write('test recall,' + str(recall_score(test_label, test_pred)) + ',\n')
+        f.write('test f1_score,' + str(f1_score(test_label, test_pred, average='binary')) + ',\n')
+        f.write('test auroc,' + str(roc_auc_score(test_label, test_pred)) + ',\n')
+        # f.write('dt,'+str(dt)+',\n')
+        # f.write('n_estimators,'+str(n_estimators)+',\n')
+        # f.write('learning_rate,'+str(learning_rate)+',\n')
+        f.write('\n')
+    #################################################################################
+
+    if if_save:
+        s = 'Y'
+    else:
+        s = input('Do you want to save this model?[Y/n]')
     if s == 'Y' or s == 'y' or s == '':
         model_filename = time.strftime('%Y-%m-%d_%H-%M-%S',
-                                       time.localtime()) + 'adaboost_best_model_' + scoring + '.joblib'
+                                       time.localtime()) + 'adaboost_best_model_' + scoring + \
+                         '-'+str(period_length)+'-'+str(overlap_ratio)+'.joblib'
         dump(best_model, save_dir + '\\' + model_filename)
 
     return dt,n_estimators,learning_rate

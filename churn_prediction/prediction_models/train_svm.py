@@ -8,6 +8,8 @@ import matplotlib
 import time
 import pandas as pd
 import random
+from collections import Counter
+np.random.seed(1)  # for reproducibility
 
 
 def getRandomIndex(num,ran):
@@ -16,13 +18,12 @@ def getRandomIndex(num,ran):
 
 
 # 获取模型训练和验证的数据
-# balanced_data_dir: 经过过采样处理得到的汇总文件
+# split_balanced_data_dir: 经过过采样处理得到的汇总文件
 # period_length: 120或30
 # overlap_ratio: 0.0或0.5，当user_type为loyaler时，获取数据时同一开发者不同区间的重叠度
 # period_length和overlap_ratio共同用于确定使用的数据文件
 # data_type_count:特征数量，默认12种特征
-def getModelData(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12):
-    data_filename = balanced_data_dir + '\\balanced_data-'+str(period_length)+'-'+str(overlap_ratio)+'.csv'
+def getModelData(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12):
     if period_length == 120:
         col_count = 12*data_type_count
     elif period_length == 30:
@@ -31,25 +32,42 @@ def getModelData(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type
         print('period length error!')
         return
 
-    data_frame = pd.read_csv(data_filename).iloc[:,1:col_count+2]
+    data_filename_1 = split_balanced_data_dir + '\\balanced_data_train-' + str(period_length) + '-' + str(
+        overlap_ratio) + '.csv'
+    data_filename_2 = split_balanced_data_dir + '\\balanced_data_test-' + str(period_length) + '-' + str(
+        overlap_ratio) + '.csv'
+
+    train_df = pd.read_csv(data_filename_1).iloc[:,1:col_count+2]
+    train_array = np.array(train_df)
+    np.random.shuffle(train_array)
+
+    test_df = pd.read_csv(data_filename_2).iloc[:,1:col_count+2]
+    test_array = np.array(test_df)
+    np.random.shuffle(test_array)
+
+    train_data,train_label = np.split(train_array,indices_or_sections=(-1,), axis=1)
+    test_data,test_label = np.split(test_array,indices_or_sections=(-1,), axis=1)
+
+    '''data_frame = pd.read_csv(data_filename).iloc[:,1:col_count+2]
     data_array = np.array(data_frame)
     np.random.shuffle(data_array)  # 打乱正负样本
 
     X, y = np.split(data_array, indices_or_sections=(-1,), axis=1)
     train_data, test_data, train_label, test_label = train_test_split(X, y, random_state=42, train_size=0.8,
-                                                                      test_size=0.2)
+                                                                      test_size=0.2)'''
     # 标签数组降维
     train_label = np.array([x[0] for x in train_label], dtype=int)
     test_label = np.array([x[0] for x in test_label], dtype=int)
 
+    # print(train_data.shape,test_data.shape,Counter(train_label),Counter(test_label))
     return train_data,test_data,train_label,test_label
 
 
 # SVM模型训练
-def trainSVM(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
+def trainSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
              kernel='rbf',C=1,gamma='auto',degree=3,
              save_dir='svm_models'):
-    train_data,test_data,train_label,test_label = getModelData(balanced_data_dir,period_length,overlap_ratio,
+    train_data,test_data,train_label,test_label = getModelData(split_balanced_data_dir,period_length,overlap_ratio,
                                                                data_type_count)
     if kernel == 'rbf' or kernel == 'RBF':
         classifier = svm.SVC(kernel='rbf', C=C, gamma=gamma)
@@ -68,7 +86,7 @@ def trainSVM(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_cou
     print("auroc:\t",roc_auc_score(train_label,train_pred))
     print("precision:\t", precision_score(train_label, train_pred))
     print("recall:\t", recall_score(train_label, train_pred))
-    print("micro f1_score:\t", f1_score(train_label, train_pred))
+    print("f1_score:\t", f1_score(train_label, train_pred,average='binary'))
 
     '''count = 0
     for i in range(len(train_pred)):
@@ -82,7 +100,7 @@ def trainSVM(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_cou
     print("auroc:\t", roc_auc_score(test_label,test_pred))
     print("precision:\t", precision_score(test_label, test_pred))
     print("recall:\t", recall_score(test_label, test_pred))
-    print("micro f1_score:\t", f1_score(test_label, test_pred, average='micro'))
+    print("f1_score:\t", f1_score(test_label, test_pred, average='binary'))
 
     '''count = 0
     for i in range(len(test_pred)):
@@ -99,9 +117,9 @@ def trainSVM(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_cou
 
 # GridSearch调参
 # https://blog.csdn.net/aliceyangxi1987/article/details/73769950
-def gridSearchForSVM(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
-                     scoring='roc_auc',save_dir='svm_models'):
-    train_data, test_data, train_label, test_label = getModelData(balanced_data_dir, period_length, overlap_ratio,
+def gridSearchForSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
+                     scoring='roc_auc',save_dir='svm_models',if_save=True):
+    train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-4, 1e-3, 0.01, 0.1, 1, 5, 10],
                          'C': [0.1, 1, 10, 50, 100, 300, 500]},
@@ -150,21 +168,46 @@ def gridSearchForSVM(balanced_data_dir,period_length=120,overlap_ratio=0.0,data_
         print("auroc:\t", roc_auc_score(test_label, test_pred))
         print("precision:\t", precision_score(test_label, test_pred))
         print("recall:\t", recall_score(test_label, test_pred))
-        print("micro f1_score:\t", f1_score(test_label, test_pred, average='micro'))
+        print("f1_score:\t", f1_score(test_label, test_pred, average='binary'))
 
-        s = input('Do you want to save this model?[Y/n]')
+        train_pred = best_model.predict(train_data)
+
+        ################################################################################3
+        with open('svm_result.csv', 'a', encoding='utf-8')as f:
+            tmp_index = split_balanced_data_dir.find('repo')
+            f.write(split_balanced_data_dir[tmp_index:tmp_index + 7] + ',' +
+                    str(period_length) + ',' + str(overlap_ratio) + ',' + str(scoring) + ',\n')
+            f.write('train accuracy,' + str(accuracy_score(train_label, train_pred)) + ',\n')
+            f.write('train precision,' + str(precision_score(train_label, train_pred)) + ',\n')
+            f.write('train recall,' + str(recall_score(train_label, train_pred)) + ',\n')
+            f.write('train f1_score,' + str(f1_score(train_label, train_pred, average='binary')) + ',\n')
+            f.write('train auroc,' + str(roc_auc_score(train_label, train_pred)) + ',\n')
+
+            f.write('test accuracy,' + str(accuracy_score(test_label, test_pred)) + ',\n')
+            f.write('test precision,' + str(precision_score(test_label, test_pred)) + ',\n')
+            f.write('test recall,' + str(recall_score(test_label, test_pred)) + ',\n')
+            f.write('test f1_score,' + str(f1_score(test_label, test_pred, average='binary')) + ',\n')
+            f.write('test auroc,' + str(roc_auc_score(test_label, test_pred)) + ',\n')
+            f.write('\n')
+        #################################################################################
+
+        if if_save:
+            s = 'Y'
+        else:
+            s = input('Do you want to save this model?[Y/n]')
         if s == 'Y' or s == 'y' or s == '':
-            model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'svm_best_model_'+score+'.joblib'
+            model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'svm_best_model_'+score+\
+                             '-'+str(period_length)+'-'+str(overlap_ratio)+'.joblib'
             dump(best_model, save_dir + '\\' + model_filename)
 
     return best_params_dict
 
 
 if __name__ == '__main__':
-    balanced_data_dir = r'F:\MOOSE_cxy\developer_churn_prediction\churn_prediction\data_preprocess\data\repo_2\part_all\balanced_data'
+    split_balanced_data_dir = r'F:\MOOSE_cxy\developer_churn_prediction\churn_prediction\data_preprocess\data\repo_2\part_all\balanced_data'
     period_length = 120
     overlap_ratio = 0.0
     data_type_count = 12
-    # gridSearchForSVM(balanced_data_dir,period_length,overlap_ratio,data_type_count)
-    trainSVM(balanced_data_dir,period_length,overlap_ratio,data_type_count)
+    # gridSearchForSVM(split_balanced_data_dir,period_length,overlap_ratio,data_type_count)
+    trainSVM(split_balanced_data_dir,period_length,overlap_ratio,data_type_count)
 
