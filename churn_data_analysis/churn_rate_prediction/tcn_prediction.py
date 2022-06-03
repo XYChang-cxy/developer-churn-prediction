@@ -9,10 +9,12 @@ import time
 
 from darts import TimeSeries
 from darts.metrics import mse, rmse, mae, mape, smape, mase
-from darts.models import RNNModel
+from darts.models import RNNModel, TCNModel, TransformerModel, NBEATSModel
 from darts.dataprocessing.transformers import Scaler
 from sklearn.preprocessing import MinMaxScaler
 from churn_data_analysis.churn_rate_prediction.nbeats_prediction import getTimeData
+
+torch.manual_seed(1);np.random.seed(1)  # for reproducibility
 
 fmt_day = '%Y-%m-%d'
 fmt_second = '%Y-%m-%d %H:%M:%S'
@@ -20,16 +22,11 @@ fmt_second = '%Y-%m-%d %H:%M:%S'
 torch.manual_seed(1);np.random.seed(1)  # for reproducibility
 
 
-# divide_point: 预测划分时间点，如果是小数则按比例划分，否则按下标
-# predict_length:预测时间段长度
-# variate_mode: 0--单变量预测;1--多变量预测;2--多时间序列(series list)预测
-# model: 'RNN'/'LSTM'/'GRU'
-# training_length: 必须大于input_chunk_length
-# scalered: 是否对数据进行标准化处理，默认为True;多变量时建议标准化
-def darts_rnnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12, predict_length=12,
-                   model_str='RNN',input_chunk_length=12,hidden_dim=25, n_rnn_layers=1,lr=1e-3,
-                   dropout=0.0, training_length=24,n_epochs=100,batch_size=32,log_tensorboard=True,
-                   work_dir='rnn_work_dir',fig_dir='',
+
+def darts_tcnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12, predict_length=12,
+                   input_chunk_length=24, output_chunk_length=12, n_epochs=200,batch_size=32,
+                   kernel_size=3,num_filters=3, num_layers=None, dilation_base=2,lr=1e-3,
+                   weight_norm=False,dropout=0.2,random_state=42,work_dir='tcn_work_dir',fig_dir='',
                    variate_mode=0,save_model=False,scalered=True):
     if divide_point > 0 and divide_point <1:
         divide_point = int(len(time_index)*divide_point)
@@ -37,12 +34,6 @@ def darts_rnnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12, p
         divide_point += len(time_index)
     if divide_point + predict_length > len(time_index):
         predict_length = len(time_index)-1-divide_point
-
-    while training_length <= input_chunk_length:
-        if input_chunk_length >= 6:
-            input_chunk_length = int(input_chunk_length/2)
-        else:
-            training_length *= 2
 
     scaler0 = MinMaxScaler(feature_range=(0, 1))
     transformer0 = Scaler(scaler0)
@@ -75,22 +66,22 @@ def darts_rnnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12, p
 
     train_list = []
     val_list = []
-
-    model = RNNModel(
-        model=model_str,# 'RNN','LSTM','GRU'
+    model = TCNModel(
         input_chunk_length=input_chunk_length,
+        output_chunk_length=output_chunk_length,
         n_epochs=n_epochs,
         batch_size=batch_size,
-        work_dir=work_dir,
-        optimizer_kwargs={"lr": lr},
-        log_tensorboard=log_tensorboard,
-        hidden_dim=hidden_dim,
-        n_rnn_layers=n_rnn_layers,
+        kernel_size=kernel_size,  # 卷积核的大小
+        num_filters=num_filters,  # 卷积层过滤器数
+        num_layers=num_layers,  # 卷积层个数，如果为None时，选择最小的数量，使得每个输出都依赖于全部输入
+        dilation_base=dilation_base,  # 每一级膨胀的指数基数
+        weight_norm=weight_norm,  # 是否使用权重正则化
         dropout=dropout,
-        training_length=training_length,
-        force_reset=True,
-        # random_state=42
+        optimizer_kwargs={"lr": lr},
+        random_state=random_state,
+        work_dir=work_dir,
     )
+
     if variate_mode==0:  # 单变量预测
         model.fit(train,verbose=True)
         pred = model.predict(n=predict_length)
@@ -116,22 +107,22 @@ def darts_rnnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12, p
         else:
             pred=model.predict(n=predict_length,series=train)
 
-    plt.figure(figsize=(6,3))
-    target_series.plot(label='actual',linewidth=1.5)
-    pred.plot(label='forecast',linewidth=1.5)
+    plt.figure(figsize=(10,5))
+    target_series.plot(label='actual')
+    pred.plot(label='forecast')
     plt.legend()
     if col_names[0][0]=='n':
         churn_rate_name='净流失率'
     else:
         churn_rate_name='重要开发者流失率'
     '''if variate_mode == 1:
-        plt.title(model_str+' 社区('+str(repo_id)+')'+churn_rate_name+'曲线预测图(multivariate预测)')
+        plt.title('TCN 社区('+str(repo_id)+')'+churn_rate_name+'曲线预测图(multivariate预测)')
     elif variate_mode == 0:
-        plt.title(model_str+' 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(univariate预测)')
+        plt.title('TCN 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(univariate预测)')
     else:
-        plt.title(model_str+' 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multiple series预测)')'''
+        plt.title('TCN 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multiple series预测)')'''
     if fig_dir!='':
-        plt.savefig(fig_dir + '\\' + time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + '_' + model_str + '_' +
+        plt.savefig(fig_dir + '\\' + time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + '_tcn_' +
                     str(variate_mode) + '.png', dpi=300, bbox_inches='tight')
     plt.show()
     print('MAPE = {:.2f}%'.format(mape(target_series, pred)))
@@ -147,12 +138,11 @@ def darts_rnnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12, p
     else:
         model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'multi_series_model.pth.tar'
     if save_model:
-        model.save_model('rnn_models/' + model_filename)
+        model.save_model('tcn_models/' + model_filename)
 
 
-
-def get_best_rnnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12, predict_length=12,
-                      model_str='RNN',work_dir='rnn_work_dir',variate_mode=0,scalered=True,fig_dir=''):
+def get_best_tcnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12, predict_length=12,
+                      work_dir='tcn_work_dir',variate_mode=0,scalered=True,fig_dir=''):
     if divide_point > 0 and divide_point <1:
         divide_point = int(len(time_index)*divide_point)
     elif divide_point < 0:
@@ -192,20 +182,28 @@ def get_best_rnnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12
     train_list = []
     val_list = []
 
-    model = RNNModel(model=model_str,input_chunk_length=24)
+    model = TCNModel(input_chunk_length=24,output_chunk_length=12)
 
     if variate_mode == 0:  # 单变量预测
         parameters = {
-            'model':[model_str],
-            'input_chunk_length':[24],#[6,12,24,36],#
-            'optimizer_kwargs':[{"lr": 1e-2}],  #[{"lr": 0.05}, {"lr": 1e-2}, {"lr": 1e-3}],#
-            'n_epochs':[300],#[200,300,400,500,600],#[300],#
-            'batch_size':[32],#[16,32,64],
-            'work_dir':[work_dir],
-            'hidden_dim': [25],#[20,25,30],  # RNN隐藏层特征映射大小
-            'n_rnn_layers': [4],#[1,2,3,4,5],  # 递归层的个数
-            'dropout':[0.1],#[0.0,0.1,0.2,0.3],#[0.2],#
-            'training_length': [24],#[20, 24, 28]
+            'work_dir': [work_dir],
+            'random_state':[42],
+            'weight_norm':[True],
+            'num_layers': [None],
+            #########################
+            'input_chunk_length':[24],#[12,24,36],#[6,12,24,36],
+            'output_chunk_length':[3],#[3,6],
+            'optimizer_kwargs': [{"lr": 1e-2}], #[{"lr": 0.05}, {"lr": 1e-2}, {"lr": 1e-3}],
+            #########################
+            'n_epochs':[500,600,700,800],
+            'batch_size':[16,32,64],#[16,32,64],
+            # #########################
+            'kernel_size':[3],#[3,5,7],
+            'num_filters':[3],#[3,5,7],
+            # ##########################
+            'dilation_base':[2],#[2,3,4],
+            'dropout':[0.1],#[0.0,0.1,0.2,0.3],
+            # ###########################
         }
         # # random_state=42,0
 
@@ -220,7 +218,7 @@ def get_best_rnnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12
             verbose=True
         )
 
-        model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())+'_'+model_str+'_model.pth.tar'
+        model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())+'_tcn_model.pth.tar'
         best_model.save_model('rnn_models/'+model_filename)
         print(best_parameter)
         print('GridSearch metric value:',metric_value)
@@ -230,30 +228,25 @@ def get_best_rnnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12
         if scalered:
             pred = transformer0.inverse_transform(pred)
     elif variate_mode==1:
-        parameters = {#################################3
-            'model': [model_str],
-            'input_chunk_length': [36],  # [6, 12, 24, 36],
-            'optimizer_kwargs': [{"lr": 0.1}],  # [{"lr": 0.1}, {"lr": 1e-2}, {"lr": 1e-3}],
-            'n_rnn_layers': [3],  # [1,2,3,4,5],  # 递归层的个数
-            'dropout': [0.0],  # [0.0,0.1,0.2,0.3],
-            'batch_size': [32, 64],  # [16,32,64],
-            'n_epochs': [200, 400, 600, 800],  # [100, 200, 300, 400, 500],
+        parameters = {
             'work_dir': [work_dir],
-            # 'hidden_dim': [20,25,30],  # RNN隐藏层特征映射大小
-            # 'training_length':[]
+            'random_state': [42],
+            'weight_norm': [True],
+            'num_layers': [None],
+            #########################
+            'input_chunk_length': [12],#[12, 24, 36],
+            'output_chunk_length': [6],#[3, 6],
+            'dropout': [0.0, 0.1, 0.2, 0.3],
+            'optimizer_kwargs': [{"lr": 1e-2}, {"lr": 1e-3}, {"lr": 1e-1}],  # [{"lr": 0.05}, {"lr": 1e-2}, {"lr": 1e-3}],
+            #########################
+            'n_epochs': [400],  # [100,200,300],
+            'batch_size': [16],  # [16,32,64],
+            #########################
+            # 'kernel_size': [3, 5, 7],
+            # 'num_filters': [3, 5, 7],
+            # ##########################
+            # 'dilation_base': [2, 4, 6],
         }
-        '''parameters = {
-            'model': [model_str],
-            'input_chunk_length': [36],#[6, 12, 24, 36],
-            'optimizer_kwargs':  [{"lr": 0.1},{"lr": 1e-2}],#[{"lr": 0.1}, {"lr": 1e-2}, {"lr": 1e-3}],
-            'n_rnn_layers': [3],#[1,2,3,4,5],  # 递归层的个数
-            'dropout':[0.0],#[0.0,0.1,0.2,0.3],
-            'batch_size':[16,32,64],#[16,32,64],
-            'n_epochs': [200,400,600,800],#[100, 200, 300, 400, 500],
-            'work_dir':[work_dir],
-            # 'hidden_dim': [20,25,30],  # RNN隐藏层特征映射大小
-            # 'training_length':[]
-        }'''
 
         best_model, best_parameter, metric_value = model.gridsearch(
             parameters=parameters,
@@ -264,7 +257,7 @@ def get_best_rnnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12
             verbose=True
         )
 
-        model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) +'_'+model_str+'_multi_model.pth.tar'
+        model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) +'_multi_model.pth.tar'
         best_model.save_model('rnn_models/' + model_filename)
         print(best_parameter)
         print('GridSearch metric value:', metric_value)
@@ -280,23 +273,23 @@ def get_best_rnnmodel(repo_id,time_index, data_frame,col_names, divide_point=-12
     else:
         pass
 
-    plt.figure(figsize=(6,3))
-    target_series.plot(label='actual',linewidth=1.5)
-    pred.plot(label='forecast',linewidth=1.5)
+    plt.figure(figsize=(10, 5))
+    target_series.plot(label='actual')
+    pred.plot(label='forecast')
     plt.legend()
     if col_names[0][0] == 'n':
         churn_rate_name = '净流失率'
     else:
         churn_rate_name = '重要开发者流失率'
     '''if variate_mode == 1:
-        plt.title(model_str+' 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multivariate预测)')
+        plt.title('TCN 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multivariate预测)')
     elif variate_mode == 0:
-        plt.title(model_str+' 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(univariate预测)')
+        plt.title('TCN 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(univariate预测)')
     else:
-        plt.title(model_str+' 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multiple series预测)')'''
+        plt.title('TCN 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multiple series预测)')'''
     if fig_dir!='':
-        plt.savefig(fig_dir+'\\'+time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) +'_'+model_str+'_'+
-                    str(variate_mode)+'.png',dpi=300,bbox_inches = 'tight')
+        plt.savefig(fig_dir + '\\' + time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + '_tcn_' +
+                    str(variate_mode) + '.png',dpi=300, bbox_inches='tight')
     plt.show()
     print('MAPE = {:.2f}%'.format(mape(target_series, pred)))
     print('MSE = {:.2f}'.format(mse(target_series, pred)))
@@ -321,28 +314,14 @@ if __name__ == '__main__':
         col_names = ret[2]
         churn_rate_order = ret[3]
 
-        model_str = 'RNN'
-        variate_mode = 0
-        # darts_rnnmodel(repo_id,time_index,data_frame,col_names,divide_point=-36,predict_length=36,
-        #                model_str=model_str,input_chunk_length=12,n_epochs=300,batch_size=16,variate_mode=variate_mode,
-        #                n_rnn_layers=3,dropout=0.0,lr=1e-3,fig_dir=fig_dir)
-        # darts_rnnmodel(repo_id, time_index, data_frame, col_names, divide_point=-36, predict_length=36,
-        #                model_str=model_str,variate_mode=variate_mode,fig_dir=fig_dir)
-        darts_rnnmodel(repo_id, time_index, data_frame, col_names, divide_point=-36, predict_length=36,
-                       model_str=model_str, input_chunk_length=12, n_epochs=300, batch_size=16,
-                       variate_mode=variate_mode,
-                       n_rnn_layers=4, dropout=0.0, lr=1e-3,fig_dir='')
-        # get_best_rnnmodel(repo_id,time_index,data_frame,col_names,divide_point=-36,predict_length=36,
-        #                   model_str=model_str,variate_mode=variate_mode)
-
-        model_str='RNN'
         variate_mode=1
-        # darts_rnnmodel(repo_id,time_index,data_frame,col_names,divide_point=-36,predict_length=36,
-        #                model_str=model_str,input_chunk_length=12,n_epochs=600,batch_size=32,variate_mode=variate_mode,
-        #                n_rnn_layers=3,dropout=0.0,lr=0.1)
-        '''darts_rnnmodel(repo_id,time_index,data_frame,col_names,divide_point=-36,predict_length=36,
-                       model_str=model_str,input_chunk_length=24,n_epochs=600,batch_size=64,variate_mode=variate_mode,
-                       n_rnn_layers=1,dropout=0.0,lr=0.01,fig_dir='')'''
 
-        # get_best_rnnmodel(repo_id,time_index,data_frame,col_names,divide_point=-36,predict_length=36,
-        #                   model_str=model_str,variate_mode=variate_mode)
+        # darts_tcnmodel(repo_id, time_index, data_frame, col_names, divide_point=-36, predict_length=36,
+        #                input_chunk_length=24, output_chunk_length=12, n_epochs=200, batch_size=32,
+        #                kernel_size=3, num_filters=3, num_layers=None, dilation_base=2, lr=1e-3,
+        #                weight_norm=False, dropout=0.2,
+        #                #fig_dir=fig_dir,
+        #                variate_mode=variate_mode)
+
+        get_best_tcnmodel(repo_id,time_index,data_frame,col_names,divide_point=-36,predict_length=36,
+                          variate_mode=variate_mode)

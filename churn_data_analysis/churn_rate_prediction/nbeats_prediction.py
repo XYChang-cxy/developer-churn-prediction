@@ -128,7 +128,7 @@ def getTimeData(id,mode,churn_rate=0,startDay='',endDay='',step=28):
 def darts_nbeadsmodel(repo_id,time_index, data_frame,col_names, divide_point=-12, predict_length=12,
                       input_chunk_length=24, output_chunk_length=12,
                       n_epochs=200,batch_size=32,num_stacks=30,num_blocks=1,
-                      num_layers=4,layer_widths=256,
+                      num_layers=4,layer_widths=256,fig_dir='',
                       variate_mode=0,save_model=False,scalered=True):
     if divide_point > 0 and divide_point <1:
         divide_point = int(len(time_index)*divide_point)
@@ -204,20 +204,23 @@ def darts_nbeadsmodel(repo_id,time_index, data_frame,col_names, divide_point=-12
         else:
             pred=model.predict(n=predict_length,series=train)
 
-    plt.figure(figsize=(10,5))
-    target_series.plot(label='actual')
-    pred.plot(label='forecast')
+    plt.figure(figsize=(6,3))
+    target_series.plot(label='actual',linewidth=1.5)
+    pred.plot(label='forecast',linewidth=1.5)
     plt.legend()
     if col_names[0][0]=='n':
         churn_rate_name='净流失率'
     else:
         churn_rate_name='重要开发者流失率'
-    if variate_mode == 1:
-        plt.title('N-BEATS 社区('+str(repo_id)+')'+churn_rate_name+'曲线预测图(multivariate预测)')
-    elif variate_mode == 0:
-        plt.title('N-BEATS 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(univariate预测)')
-    else:
-        plt.title('N-BEATS 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multiple series预测)')
+    # if variate_mode == 1:
+    #     plt.title('N-BEATS 社区('+str(repo_id)+')'+churn_rate_name+'曲线预测图(multivariate预测)')
+    # elif variate_mode == 0:
+    #     plt.title('N-BEATS 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(univariate预测)')
+    # else:
+    #     plt.title('N-BEATS 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multiple series预测)')
+    if fig_dir!='':
+        plt.savefig(fig_dir + '\\' + time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + '_nbeats_' +
+                    str(variate_mode) + '.png',dpi=300, bbox_inches='tight')
     plt.show()
     print('MAPE = {:.2f}%'.format(mape(target_series, pred)))
     print('MSE = {:.2f}'.format(mse(target_series, pred)))
@@ -242,7 +245,7 @@ def darts_nbeadsmodel(repo_id,time_index, data_frame,col_names, divide_point=-12
 
 
 def get_best_nbeatsmodel(repo_id,time_index, data_frame,col_names, divide_point=-12, predict_length=12,
-                         variate_mode=0,scalered=True):
+                         variate_mode=0,scalered=True,fig_dir=''):
     if divide_point > 0 and divide_point <1:
         divide_point = int(len(time_index)*divide_point)
     elif divide_point < 0:
@@ -317,11 +320,14 @@ def get_best_nbeatsmodel(repo_id,time_index, data_frame,col_names, divide_point=
     elif variate_mode==1:
         parameters = {
             'input_chunk_length': [36],
-            'output_chunk_length': [12],
-            'n_epochs': [200],
-            'batch_size': [64],
-            'num_blocks': [1],#[1, 2, 3],
-            'layer_widths': [256],#[128, 256, 512]
+            'output_chunk_length': [6],
+            'optimizer_kwargs': [{"lr": 1e-2}],#[{"lr": 0.05}, {"lr": 1e-2}, {"lr": 1e-3},{"lr": 1e-1}],
+            'n_epochs': [100,200,300],
+            'batch_size': [16,32,64],
+            # 'num_blocks': [1],#[1, 2, 3],
+            # 'layer_widths': [256],#[128, 256, 512]
+
+            # 学习率？？？？？？？
         }
 
         best_model, best_parameter, metric_value = model.gridsearch(
@@ -443,20 +449,23 @@ def get_best_nbeatsmodel(repo_id,time_index, data_frame,col_names, divide_point=
             pred = model.predict(n=predict_length, series=train)
 
 
-    plt.figure(figsize=(10,5))
-    target_series.plot(label='actual')
-    pred.plot(label='forecast')
+    plt.figure(figsize=(6,3))
+    target_series.plot(label='actual',linewidth=1.5)
+    pred.plot(label='forecast',linewidth=1.5)
     plt.legend()
     if col_names[0][0]=='n':
         churn_rate_name='净流失率'
     else:
         churn_rate_name='重要开发者流失率'
-    if variate_mode == 1:
+    '''if variate_mode == 1:
         plt.title('社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multivariate预测)')
     elif variate_mode == 0:
         plt.title('社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(univariate预测)')
     else:
-        plt.title('社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multiple series预测)')
+        plt.title('社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multiple series预测)')'''
+    if fig_dir!='':
+        plt.savefig(fig_dir + '\\' + time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + '_nbeats_' +
+                    str(variate_mode) + '.png',dpi=300, bbox_inches='tight')
     plt.show()
     print('MAPE = {:.2f}%'.format(mape(target_series, pred)))
     print('MSE = {:.2f}'.format(mse(target_series, pred)))
@@ -469,6 +478,108 @@ def get_best_nbeatsmodel(repo_id,time_index, data_frame,col_names, divide_point=
     #     print('MASE = {:.2f}'.format(mase(series, preds, train_multi)))
     # else:
     #     print('MASE = {:.2f}'.format(mase(target_series, pred, train)))
+
+
+# def drawPlot(path,repo_id,time_index, data_frame,col_names, divide_point=-12, predict_length=12,
+#              variate_mode=0,scalered=False):
+#     if divide_point > 0 and divide_point < 1:
+#         divide_point = int(len(time_index) * divide_point)
+#     elif divide_point < 0:
+#         divide_point += len(time_index)
+#     if divide_point + predict_length > len(time_index):
+#         predict_length = len(time_index) - 1 - divide_point
+#
+#     scaler0 = MinMaxScaler(feature_range=(0, 1))
+#     transformer0 = Scaler(scaler0)
+#     scaler1 = MinMaxScaler(feature_range=(0, 1))
+#     transformer1 = Scaler(scaler1)
+#     scaler2 = MinMaxScaler(feature_range=(0, 1))
+#     transformer2 = Scaler(scaler2)
+#
+#     # variate_mode=2: multiple time series
+#     series_list = []
+#     for i in range(data_frame.shape[1]):
+#         series = TimeSeries.from_times_and_values(time_index, data_frame.iloc[:, [i]])
+#         series_list.append(series)
+#     if scalered:  # 数据标准化
+#         series_list = transformer2.fit_transform(series_list)
+#
+#     # chun rate series(variate_mode=0)
+#     target_series = TimeSeries.from_times_and_values(time_index, data_frame.iloc[:, [-1]])
+#     if scalered:
+#         uni_series = transformer0.fit_transform(target_series)
+#     else:
+#         uni_series = target_series
+#     train, val = uni_series[:divide_point], uni_series[divide_point:divide_point + predict_length]
+#
+#     # variate_mode=1:multivariate
+#     multi_series = TimeSeries.from_times_and_values(time_index, data_frame)
+#     if scalered:
+#         multi_series = transformer1.fit_transform(multi_series)
+#     train_multi, val_multi = multi_series[:divide_point], multi_series[divide_point:divide_point + predict_length]
+#
+#     train_list = []
+#     val_list = []
+#
+#     model = NBEATSModel(input_chunk_length=24, output_chunk_length=12).load_model(path)
+#
+#     if variate_mode==0:  # 单变量预测
+#         # model.fit(train,verbose=True)
+#         pred = model.predict(n=predict_length)
+#         if scalered:
+#             pred = transformer0.inverse_transform(pred)
+#     elif variate_mode==1:
+#         # model.fit(train_multi, verbose=True)
+#         preds = model.predict(n=predict_length)
+#
+#         if scalered:
+#             preds = transformer1.inverse_transform(preds)
+#
+#         pred = TimeSeries.from_times_and_values(time_index[divide_point:divide_point+predict_length],
+#                          preds.pd_dataframe().iloc[:,-1])
+#     else:
+#         for series in series_list:
+#             train_list.append(series[:divide_point])
+#             val_list.append(series[divide_point:divide_point + predict_length])
+#         # model.fit(train_list,verbose=True)
+#         if scalered:
+#             pred_list = model.predict(n=predict_length,series=train_list)
+#             pred = transformer2.inverse_transform(pred_list)[-1]
+#         else:
+#             pred=model.predict(n=predict_length,series=train)
+#     plt.figure(figsize=(10, 5))
+#     target_series.plot(label='actual')
+#     pred.plot(label='forecast')
+#     plt.legend()
+#     if col_names[0][0] == 'n':
+#         churn_rate_name = '净流失率'
+#     else:
+#         churn_rate_name = '重要开发者流失率'
+#     if variate_mode == 1:
+#         plt.title('N-BEATS 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multivariate预测)')
+#     elif variate_mode == 0:
+#         plt.title('N-BEATS 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(univariate预测)')
+#     else:
+#         plt.title('N-BEATS 社区(' + str(repo_id) + ')' + churn_rate_name + '曲线预测图(multiple series预测)')
+#     plt.show()
+#     print('MAPE = {:.2f}%'.format(mape(target_series, pred)))
+#     print('MSE = {:.2f}'.format(mse(target_series, pred)))
+#     print('RMSE = {:.2f}'.format(rmse(target_series, pred)))
+#     print('MAE = {:.2f}'.format(mae(target_series, pred)))
+#     print('sMAPE = {:.2f}%'.format(smape(target_series, pred)))
+#     # if variate_mode==0:
+#     #     print('MASE = {:.2f}'.format(mase(target_series, pred,train)))
+#     # elif variate_mode == 1:
+#     #     print('MASE = {:.2f}'.format(mase(series, preds, train_multi)))
+#     # else:
+#     #     print('MASE = {:.2f}'.format(mase(target_series, pred, train)))
+#
+#     if variate_mode == 0:
+#         model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'univariate_model.pth.tar'
+#     elif variate_mode == 1:
+#         model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'multivariate_model.pth.tar'
+#     else:
+#         model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'multi_series_model.pth.tar'
 
 
 if __name__ == '__main__':
@@ -504,3 +615,14 @@ if __name__ == '__main__':
         #                      variate_mode=1,scalered=True)
         # get_best_nbeatsmodel(repo_id, time_index, data_frame, col_names, divide_point=-36, predict_length=36,
         #                      variate_mode=2,scalered=False)
+
+        fig_dir = r'C:\Users\cxy\Desktop\model_figs'
+        # darts_nbeadsmodel(repo_id, time_index, data_frame, col_names, divide_point=-36, predict_length=36,
+        #                   input_chunk_length=24, output_chunk_length=3, n_epochs=100, batch_size=32,
+        #                   num_blocks=1, layer_widths=256, variate_mode=0,fig_dir=fig_dir)
+        # get_best_nbeatsmodel(repo_id, time_index, data_frame, col_names, divide_point=-36, predict_length=36,
+        #                      variate_mode=0,scalered=True,fig_dir=fig_dir)
+        darts_nbeadsmodel(repo_id, time_index, data_frame, col_names, divide_point=-36,predict_length=36,
+                          input_chunk_length=12, output_chunk_length=3, n_epochs=200, batch_size=32,
+                          num_blocks=1, layer_widths=256, variate_mode=2,
+                          scalered=False,fig_dir=fig_dir)
